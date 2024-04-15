@@ -3,14 +3,19 @@ const Post = require('../models/post_model');
 
 const getAllPosts = async(req, res, next) => {
     try {
-        const posts = await Post.find();
-        res.status(200).json(posts);  
-    } catch (err) {
-        if (!res.headersSent) {  
-            res.status(400).json({ message: 'Error retrieving posts' });
+        let posts;  
+        if (req.query.sender == null) {
+            posts = await Post.find();  
+        } else {
+            posts = await Post.find({ 'sender': req.query.sender });
         }
+        res.status(200).send(posts);  
+    } catch (err) {
+        res.status(400).send({ 'error': "Failed to get posts" });
     }
 }
+
+
 
 
 
