@@ -2,9 +2,14 @@
 
 GET http://localhost:3000/post
 
-
 ###
 
 POST http://localhost:3000/post
+Content-Type: application/json
 
+{
+    "message": "bar mor the king",
+    "sender": "Bar Mor"
+    
+}
 ###
