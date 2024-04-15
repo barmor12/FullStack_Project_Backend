@@ -33,4 +33,24 @@ const addNewPost = async (req, res, next) => {
     }
 }
 
-module.exports = { getAllPosts, addNewPost }  
+
+
+const getPostById = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.json(post);
+    } catch (err) {
+        console.error("Error retrieving post:", err);
+        if (err.name === 'CastError') {
+            return res.status(400).json({ message: "Invalid post ID format" });
+        }
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+module.exports = { getAllPosts, addNewPost, getPostById}  
