@@ -1,0 +1,20 @@
+{
+  "name": "sce_2024_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "test",
+    "devstart": "nodemon app.js",
+    "start": "node app.js"
+  },
+  "author": "Bar Mor",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "moongose": "^1.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
