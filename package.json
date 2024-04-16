@@ -4,16 +4,20 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests",
+    "testpost": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests/post.test.js",
+    "testauth": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests/auth.test.js",
+    "testall": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests",
     "devstart": "nodemon ./src/app.ts",
-    "start": "tsc && node dist/app.js",
+    "start": "tsc && node dist/src/app.js",
     "lint": "eslint . --ext .ts"
   },
   "author": "Bar Mor",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "body-parser": "^1.20.2",
     "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.3.1",
     "moongose": "^1.0.0"
   },

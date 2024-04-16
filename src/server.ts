@@ -17,9 +17,10 @@ db.once('open', () => console.log('Connected to mongo DB'));
 app.use('/public',express.static('public'));
 
 import postRouter from './routes/post_route';
+import authRouter from './routes/auth_route.js';
 
 app.use('/post', postRouter);
-
+app.use('/auth', authRouter);
 
 
 export = app;
