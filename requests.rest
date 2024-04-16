@@ -9,6 +9,7 @@ GET http://localhost:3000/post
 ###
 
 POST http://localhost:3000/post
+Authorization : jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2Nj
 Content-Type: application/json
 
 {
@@ -18,6 +19,9 @@ Content-Type: application/json
 }
 ###
 
+GET http://localhost:3000/post
+Authorization: jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjFlZmRkMmUxNmNjYTZiYzViMWUyM2QiLCJpYXQiOjE3MTMzMDcwOTgsImV4cCI6MTcxMzMxMDY5OH0.3XLAkhRYLUioiKGxN4pE62aOCSCL7sSYtjLagGR2_G4
+###
 GET http://localhost:3000/post?sender=Bar11
 ###
 

@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 
 const userEmail = "user2@gmail.com";
 const userPassword = "12345";
+let accessToken = "";
 
 describe("Auth Tests", () => {
     let server: any;
@@ -32,16 +33,26 @@ describe("Auth Tests", () => {
     
 
     test("Login test", async () => {
-        const response = await supertest(app)
+        // Login and get the token
+        const loginResponse = await supertest(app)
             .post('/auth/login')
             .send({
-                "email": userEmail,
-                "password": userPassword
+                email: userEmail,
+                password: userPassword
             });
-        expect(response.statusCode).toEqual(200);
-        const token = response.body.accessToken;
-        expect(token).toBeTruthy(); 
-    }, 10000); 
+        expect(loginResponse.statusCode).toEqual(200);
+        const accessToken = loginResponse.body.accessToken;
+        expect(accessToken).toBeTruthy();
+        const postsResponse = await supertest(app)
+            .get('/post')
+            .set('Authorization', `Bearer ${accessToken}`); 
+        expect(postsResponse.statusCode).toEqual(200);
+    }, 10000);
+
+
+
+
+    });
     
     test("Logout test", async () => {
         const response = await supertest(app)
@@ -140,4 +151,3 @@ describe("Auth Tests", () => {
         expect(response.statusCode).not.toEqual(200);
     },
     10000);
-});
