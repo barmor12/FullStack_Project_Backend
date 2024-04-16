@@ -1,61 +1,45 @@
+
 import { Request, Response } from 'express';
-import User from '../models/user_model';
 import bcrypt from 'bcrypt';
+import User from '../models/user_model';  
 
-function sendError(res:Response , error:String){
-    res.status(400).send({
-        'err':error
-    });
+function sendError(res: Response, message: string) {
+    res.status(400).json({ error: message });
 }
 
-
-
-const register = async (req: Request, res: Response): Promise<void> => {
-    const email = req.body.email;
-    const password = req.body.password;
-    if(!email || !password){
+export async function register(req: Request, res: Response) {
+    const { email, password } = req.body;
+    if (!email || !password) {
         return sendError(res, "Email and password are required");
-        
     }
+
     try {
-        const user = await User.findOne({ 'email' : email });
-        if(user){
-            sendError(res, "User already exists");
-            
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return sendError(res, "User already exists");
         }
-    }catch(err){
-        console.log("Error finding user", + err);
-        sendError(res, "Error finding user");
-        
-    }
 
-    try {
-        const salt = await bcrypt.genSalt(10);  
+        const salt = await bcrypt.genSalt(10);
         const encryptedPassword = await bcrypt.hash(password, salt);
-        const NewUser = new User({
-            email: email,
-            password: encryptedPassword
-        });
-        const newUser = await NewUser.save();
-        res.status(200).send(newUser);
+        const newUser = new User({ email, password: encryptedPassword });
+        await newUser.save();
 
-    }catch(err){    
-        console.log("Error generating salt", + err);
-        sendError(res, "Error generating salt");
-        
+        res.status(200).json(newUser);
+    } catch (err) {
+        console.error("Registration error:", err);
+        sendError(res, "Error during registration");
     }
 }
 
-
-
-const login = async (req: Request, res: Response): Promise<void> => {
-    console.log(req.body);
+export async function login(req: Request, res: Response) {
+    
     res.status(200).send('Login successful');
-};
-const logout = async (req: Request, res: Response): Promise<void> => {
-    console.log(req.body);
+}
+
+export async function logout(req: Request, res: Response) {
+    
     res.status(200).send('Logout successful');
 }
 
 
-export default { login, register, logout};
+export default { login, register, logout };

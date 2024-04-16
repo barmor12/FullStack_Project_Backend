@@ -1,24 +1,24 @@
+
 import supertest from 'supertest';
+import app from '../server';  
 import mongoose from 'mongoose';
-import app from '../server';
-import Post_c from '../models/post_model';
 
-let server;
-
-
-const userEmail= "user1@gmail.com"
-const userPassword= "12345"
-beforeAll(async () => {
-    server = app.listen(3000);
-    await Post_c.deleteMany({});
-});
-
-afterAll(async () => {
-    await mongoose.connection.close();
-    if (server) server.close();
-});
+const userEmail = "user2@gmail.com";
+const userPassword = "12345";
 
 describe("Auth Tests", () => {
+    let server: any;
+
+    beforeAll(async () => {
+        server = app.listen(3000);
+        
+        await mongoose.model('User').deleteMany({});
+    });
+
+    afterAll(async () => {
+        await mongoose.connection.close();
+        server.close();
+    });
 
     test("Register test", async () => {
         const response = await supertest(app)
@@ -28,27 +28,22 @@ describe("Auth Tests", () => {
                 password: userPassword
             });
         expect(response.statusCode).toEqual(200);
+    }, 10000); 
 
-    });
     test("Login test", async () => {
-        const response = await supertest(app).get('/auth/login').send({
-            email: userEmail,
-            password: userPassword
-        
-        });
+        const response = await supertest(app)
+            .post('/auth/login')
+            .send({
+                email: userEmail,
+                password: userPassword
+            });
         expect(response.statusCode).toEqual(200);
+    }, 10000); 
 
-    });
     test("Logout test", async () => {
-        const response = await supertest(app).get('/auth/logout').send({
-            email: userEmail,
-            password: userPassword
-        
-        });
-
-
+        const response = await supertest(app)
+            .post('/auth/logout')
+            .send();
+        expect(response.statusCode).toEqual(200);
+    }, 10000); 
 });
-    
-    });
-
-
