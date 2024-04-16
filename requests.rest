@@ -1,6 +1,6 @@
 ###
 
-GET http://localhost:3000/post/661d9ea8ecbcd2ac1753f25d
+GET http://localhost:3000/post/661e46cb0b7a202b833bfae5
 
 ###
 
@@ -13,10 +13,10 @@ Content-Type: application/json
 
 {
     "message": "bar mor the king",
-    "sender": "Bar Mor"
+    "sender": "Bar11"
     
 }
 ###
 
-GET http://localhost:3000/post?sender=123456
+GET http://localhost:3000/post?sender=Bar11
 
