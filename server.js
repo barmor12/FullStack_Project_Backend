@@ -13,7 +13,7 @@ const db = mongoose.connection;
 db.on('error', (error) => console.error(error));
 db.once('open', () => console.log('Connected to mongo DB'));
 
-app.use(express.static('public'));
+app.use('/public',express.static('public'));
 
 const postRouter = require('./routes/post_route.js');
 app.use('/post', postRouter);
