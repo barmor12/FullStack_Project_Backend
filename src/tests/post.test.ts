@@ -1,7 +1,7 @@
-const supertest = require('supertest');
-const mongoose = require('mongoose');
-const app = require('../server');
-const Post_c = require('../models/post_model');
+import supertest from 'supertest';
+import mongoose from 'mongoose';
+import app from '../server';
+import Post_c from '../models/post_model';
 
 let server;
 
@@ -46,3 +46,5 @@ describe("posts Tests", () => {
     })
 
 });
+
+
