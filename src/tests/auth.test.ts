@@ -39,8 +39,16 @@ describe("Auth Tests", () => {
         expect(response.statusCode).toEqual(200);
 
     });
+    test("Logout test", async () => {
+        const response = await supertest(app).get('/auth/logout').send({
+            email: userEmail,
+            password: userPassword
+        
+        });
 
 
 });
+    
+    });
 
 

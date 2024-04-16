@@ -45,5 +45,11 @@ describe("Auth Tests", () => {
         });
         expect(response.statusCode).toEqual(200);
     }));
+    test("Logout test", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default).get('/auth/logout').send({
+            email: userEmail,
+            password: userPassword
+        });
+    }));
 });
 //# sourceMappingURL=auth.test.js.map
