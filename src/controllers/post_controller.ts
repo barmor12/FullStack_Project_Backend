@@ -1,25 +1,26 @@
 import Post from '../models/post_model'; 
+import { Request, Response } from 'express';
 
-
-const getAllPosts = async(req, res) => {
+const getAllPosts = async(req: Request, res: Response) => {
     try {
-        let posts;  
-        if (req.query.sender == null) {
-            posts = await Post.find();  
-        } else {
+        let posts;
+        if (typeof req.query.sender === 'string') { 
             posts = await Post.find({ 'sender': req.query.sender });
+        } else {
+            posts = await Post.find(); 
         }
         res.status(200).send(posts);  
     } catch (err) {
+        console.error("Failed to get posts:", err);
         res.status(400).send({ 'error': "Failed to get posts" });
     }
-}
+};
 
 
 
 
 
-const addNewPost = async (req, res) => {
+const addNewPost = async (req:Request, res:Response) => {
     console.log(req.body);
 
     const post = new Post({  
@@ -40,7 +41,7 @@ const addNewPost = async (req, res) => {
 
 
 
-const getPostById = async (req, res) => {
+const getPostById = async (req:Request, res:Response) => {
     try {
         const post = await Post.findById(req.params.id);
         if (!post) {

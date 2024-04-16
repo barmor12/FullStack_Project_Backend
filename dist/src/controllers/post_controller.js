@@ -15,15 +15,16 @@ const post_model_1 = __importDefault(require("../models/post_model"));
 const getAllPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         let posts;
-        if (req.query.sender == null) {
-            posts = yield post_model_1.default.find();
+        if (typeof req.query.sender === 'string') {
+            posts = yield post_model_1.default.find({ 'sender': req.query.sender });
         }
         else {
-            posts = yield post_model_1.default.find({ 'sender': req.query.sender });
+            posts = yield post_model_1.default.find();
         }
         res.status(200).send(posts);
     }
     catch (err) {
+        console.error("Failed to get posts:", err);
         res.status(400).send({ 'error': "Failed to get posts" });
     }
 });
