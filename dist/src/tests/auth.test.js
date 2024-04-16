@@ -12,7 +12,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// auth.test.ts
 const supertest_1 = __importDefault(require("supertest"));
 const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -35,22 +34,105 @@ describe("Auth Tests", () => {
             email: userEmail,
             password: userPassword
         });
-        expect(response.statusCode).toEqual(200);
+        expect(response.statusCode).toEqual(201);
     }), 10000);
     test("Login test", () => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield (0, supertest_1.default)(server_1.default)
             .post('/auth/login')
             .send({
-            email: userEmail,
-            password: userPassword
+            "email": userEmail,
+            "password": userPassword
         });
         expect(response.statusCode).toEqual(200);
+        const token = response.body.accessToken;
+        expect(token).toBeTruthy();
     }), 10000);
     test("Logout test", () => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield (0, supertest_1.default)(server_1.default)
             .post('/auth/logout')
             .send();
         expect(response.statusCode).toEqual(200);
+    }), 10000);
+    test("Login with wrong password", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/login')
+            .send({
+            "email": userEmail,
+            "password": "wrongpassword"
+        });
+        expect(response.statusCode).not.toEqual(200);
+    }), 10000);
+    test("Login with wrong email", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/login')
+            .send({
+            "email": "worngemail",
+            "password": userPassword
+        });
+        expect(response.statusCode).not.toEqual(200);
+    }), 10000);
+    test("Login with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/login')
+            .send({
+            "email": "",
+            "password": userPassword
+        });
+        expect(response.statusCode).not.toEqual(200);
+    }), 10000);
+    test("Login with empty password", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/login')
+            .send({
+            "email": userEmail,
+            "password": ""
+        });
+        expect(response.statusCode).not.toEqual(200);
+    }), 10000);
+    test("Register with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/register')
+            .send({
+            email: "",
+            password: userPassword
+        });
+        expect(response.statusCode).not.toEqual(201);
+    }), 10000);
+    test("Register with empty password", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/register')
+            .send({
+            email: userEmail,
+            password: ""
+        });
+        expect(response.statusCode).not.toEqual(201);
+    }), 10000);
+    test("Register with empty email and password", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/register')
+            .send({
+            email: "",
+            password: ""
+        });
+        expect(response.statusCode).not.toEqual(201);
+    }), 10000);
+    test("Register with existing email", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/register')
+            .send({
+            email: userEmail,
+            password: userPassword
+        });
+        expect(response.statusCode).not.toEqual(201);
+    }), 10000);
+    test("Login with not registered email", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default)
+            .post('/auth/login')
+            .send({
+            "email": "bar1212@gmail.com",
+            "password": "12345"
+        });
+        expect(response.statusCode).not.toEqual(200);
     }), 10000);
 });
 //# sourceMappingURL=auth.test.js.map

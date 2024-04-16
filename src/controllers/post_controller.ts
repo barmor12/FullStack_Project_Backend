@@ -1,6 +1,7 @@
 import Post from '../models/post_model'; 
 import { Request, Response } from 'express';
 
+
 const getAllPosts = async(req: Request, res: Response) => {
     try {
         let posts;
@@ -58,5 +59,34 @@ const getPostById = async (req:Request, res:Response) => {
 };
 
 
+// Update Post
+const updatePost = async (req, res) => {
+    try {
+        const post = await Post.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.json(post);
+    } catch (err) {
+        console.error("Error updating post:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
 
-export = { getAllPosts, addNewPost, getPostById}  
+// Delete Post
+const deletePost = async (req, res) => {
+    try {
+        const post = await Post.findByIdAndDelete(req.params.id);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.status(200).json({ message: 'Post deleted' });
+    } catch (err) {
+        console.error("Error deleting post:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+
+
+export = { getAllPosts, addNewPost, getPostById, deletePost, updatePost}  

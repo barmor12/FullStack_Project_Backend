@@ -60,5 +60,33 @@ const getPostById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         res.status(500).json({ message: 'Server error' });
     }
 });
-module.exports = { getAllPosts, addNewPost, getPostById };
+// Update Post
+const updatePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const post = yield post_model_1.default.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.json(post);
+    }
+    catch (err) {
+        console.error("Error updating post:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+// Delete Post
+const deletePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const post = yield post_model_1.default.findByIdAndDelete(req.params.id);
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+        res.status(200).json({ message: 'Post deleted' });
+    }
+    catch (err) {
+        console.error("Error deleting post:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+module.exports = { getAllPosts, addNewPost, getPostById, deletePost, updatePost };
 //# sourceMappingURL=post_controller.js.map

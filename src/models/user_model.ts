@@ -12,3 +12,4 @@ const postSchema = new mongoose.Schema({
 });
 
 export = mongoose.model('User', postSchema);
+
