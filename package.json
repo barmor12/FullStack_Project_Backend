@@ -4,7 +4,7 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "tsc && jest --detectOpenHandles --forceExit",
+    "test": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests",
     "devstart": "nodemon ./src/app.ts",
     "start": "tsc && node dist/app.js",
     "lint": "eslint . --ext .ts"
@@ -24,6 +24,7 @@
     "jest": "^29.7.0",
     "nodemon": "^3.1.0",
     "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
