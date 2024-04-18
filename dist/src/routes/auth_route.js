@@ -9,5 +9,6 @@ const router = express_1.default.Router();
 router.post('/login', auth_controller_1.default.login);
 router.post('/register', auth_controller_1.default.register);
 router.post('/logout', auth_controller_1.default.logout);
+router.post('/refresh', auth_controller_1.default.refresh);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map

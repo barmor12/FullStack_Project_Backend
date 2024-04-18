@@ -12,6 +12,10 @@ const postSchema = new mongoose_1.default.Schema({
         type: String,
         required: true
     },
+    refresh_tokens: {
+        type: [String],
+        required: true
+    }
 });
 module.exports = mongoose_1.default.model('User', postSchema);
 //# sourceMappingURL=user_model.js.map

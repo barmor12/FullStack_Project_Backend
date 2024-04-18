@@ -38,7 +38,6 @@ describe("Auth Tests", () => {
         expect(response.statusCode).toEqual(201);
     }), 10000);
     test("Login test", () => __awaiter(void 0, void 0, void 0, function* () {
-        // Login and get the token
         const loginResponse = yield (0, supertest_1.default)(server_1.default)
             .post('/auth/login')
             .send({
@@ -50,7 +49,7 @@ describe("Auth Tests", () => {
         expect(accessToken).toBeTruthy();
         const postsResponse = yield (0, supertest_1.default)(server_1.default)
             .get('/post')
-            .set('Authorization', `Bearer ${accessToken}`); // Correctly setting the authorization header
+            .set('Authorization', `Bearer ${accessToken}`);
         expect(postsResponse.statusCode).toEqual(200);
     }), 10000);
 });

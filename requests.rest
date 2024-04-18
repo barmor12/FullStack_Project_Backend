@@ -19,17 +19,17 @@ Content-Type: application/json
 }
 ###
 
-GET http://localhost:3000/post
-Authorization: jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjFlZmRkMmUxNmNjYTZiYzViMWUyM2QiLCJpYXQiOjE3MTMzMDcwOTgsImV4cCI6MTcxMzMxMDY5OH0.3XLAkhRYLUioiKGxN4pE62aOCSCL7sSYtjLagGR2_G4
+GET http://localhost:3000/post/6621271d9e99154a66c557de
+Authorization: jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjIxMjY3NTllOTkxNTRhNjZjNTU3ZDUiLCJpYXQiOjE3MTM0NDg1NzIsImV4cCI6MTcxMzQ1MjE3Mn0.DWDBxvWcyCm-KXn8uyHhHNJJ3BpEVfnr97z7ulektE0
 ###
 GET http://localhost:3000/post?sender=Bar11
 ###
 
 
-POST http://localhost:3000/auth/login
+POST http://localhost:3000/auth/register
 Content-Type: application/json
 
 {
-    "email":"user3@gmail.com",
+    "email":"user6@gmail.com",
     "password":"123456"
 }

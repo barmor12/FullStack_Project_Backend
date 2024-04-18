@@ -9,6 +9,10 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    refresh_tokens: {
+        type: [String],
+        required: true
+    }
 });
 
 export = mongoose.model('User', postSchema);
