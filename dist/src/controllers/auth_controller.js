@@ -91,23 +91,27 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const refresh = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken; // Ensure it's taking from the right place
     if (!refreshToken) {
         return sendError(res, "Refresh token required");
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (isTokenPayload(decoded)) {
-            const user = yield user_model_1.default.findById(decoded._id);
-            if (!user || !user.refresh_tokens.includes(refreshToken)) {
-                return sendError(res, "Invalid refresh token");
-            }
-            const newAccessToken = jsonwebtoken_1.default.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-            res.status(200).json({ accessToken: newAccessToken });
+        if (!isTokenPayload(decoded)) {
+            return sendError(res, "Invalid token format", 401);
         }
-        else {
-            sendError(res, "Invalid token", 401);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user || !user.refresh_tokens.includes(refreshToken)) {
+            return sendError(res, "Invalid or expired refresh token", 401);
         }
+        // Create new tokens
+        const newAccessToken = jsonwebtoken_1.default.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+        const newRefreshToken = jsonwebtoken_1.default.sign({ _id: user._id.toString() }, process.env.REFRESH_TOKEN_SECRET);
+        // Optionally remove old and add new refresh token in database
+        user.refresh_tokens = user.refresh_tokens.filter(token => token !== refreshToken);
+        user.refresh_tokens.push(newRefreshToken);
+        yield user.save();
+        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     }
     catch (err) {
         console.error("Refresh token error:", err);

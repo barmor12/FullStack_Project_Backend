@@ -168,6 +168,26 @@ describe("Auth Tests", () => {
 
             jest.restoreAllMocks();  // Restore original functionality after the test
         });
+
+        jest.setTimeout(30000);
+        test("refresh token", async () => {
+            // Make sure to wait for the result of the request
+            let response = await supertest(app).post("/auth/refresh")
+                .send({ refreshToken: refreshToken })  // Correctly send the refreshToken in the body if that's expected
+                .expect(200);  // Assert status code directly
+        
+            const newAccessToken = response.body.accessToken;
+            expect(newAccessToken).toBeTruthy();
+        
+            const newRefreshToken = response.body.refreshToken;
+            expect(newRefreshToken).toBeTruthy();
+        
+            // Test using the new access token
+            response = await supertest(app).get("/post")
+                .set('Authorization', 'Bearer ' + newAccessToken)
+                .expect(200);  // Assert status code directly
+        }, 30000);  // Extended timeout if needed
+        
     });
 
     describe("Logout Tests", () => {

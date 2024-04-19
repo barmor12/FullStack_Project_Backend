@@ -89,30 +89,42 @@ const logout = async (req: Request, res: Response) => {
     }
 };
 
+
 const refresh = async (req: Request, res: Response) => {
-    const { refreshToken } = req.body;
+    const refreshToken = req.body.refreshToken;  // Ensure it's taking from the right place
     if (!refreshToken) {
         return sendError(res, "Refresh token required");
     }
 
     try {
         const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (isTokenPayload(decoded)) {
-            const user = await User.findById(decoded._id);
-            if (!user || !user.refresh_tokens.includes(refreshToken)) {
-                return sendError(res, "Invalid refresh token");
-            }
-
-            const newAccessToken = jwt.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-            res.status(200).json({ accessToken: newAccessToken });
-        } else {
-            sendError(res, "Invalid token", 401);
+        if (!isTokenPayload(decoded)) {
+            return sendError(res, "Invalid token format", 401);
         }
+        
+        const user = await User.findById(decoded._id);
+        if (!user || !user.refresh_tokens.includes(refreshToken)) {
+            return sendError(res, "Invalid or expired refresh token", 401);
+        }
+
+        // Create new tokens
+        const newAccessToken = jwt.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+        const newRefreshToken = jwt.sign({ _id: user._id.toString() }, process.env.REFRESH_TOKEN_SECRET);
+
+        // Optionally remove old and add new refresh token in database
+        user.refresh_tokens = user.refresh_tokens.filter(token => token !== refreshToken);
+        user.refresh_tokens.push(newRefreshToken);
+        await user.save();
+
+        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch (err) {
         console.error("Refresh token error:", err);
         sendError(res, "Failed to refresh token", 401);
     }
 };
+
+    
+
 
 
 const authenticateMiddleware = async (req: Request, res: Response, next: Function) => {
