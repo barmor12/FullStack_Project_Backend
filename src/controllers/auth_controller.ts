@@ -7,6 +7,23 @@ interface TokenPayload extends JwtPayload {
     _id: string;
 }
 
+const generateTokens = (userId: string): { accessToken: string, refreshToken: string } => {
+    const accessToken = jwt.sign({
+        _id: userId
+    }, process.env.ACCESS_TOKEN_SECRET, {
+        expiresIn: process.env.JWT_TOKEN_EXPIRATION
+    });
+
+    const refreshToken = jwt.sign({
+        _id: userId,
+        salt: Math.random()
+    }, process.env.REFRESH_TOKEN_SECRET);
+
+    return {
+        accessToken: accessToken,
+        refreshToken: refreshToken
+    }
+}
 const sendError = (res: Response, message: string, statusCode: number = 400) => {
     if (!res.headersSent) {
         res.status(statusCode).json({ error: message });
@@ -28,13 +45,13 @@ const login = async (req: Request, res: Response) => {
             return sendError(res, "Bad email or password");
         }
 
-        const accessToken = jwt.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-        const refreshToken = jwt.sign({ _id: user._id.toString() }, process.env.REFRESH_TOKEN_SECRET);
+        const accessToken = jwt.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EX });
+        const refreshToken = jwt.sign({'_id': user._id }, process.env.REFRESH_TOKEN_SECRET);
 
         user.refresh_tokens.push(refreshToken);
         await user.save();
 
-        res.status(200).json({ accessToken, refreshToken });
+        res.status(200).send({ accessToken, refreshToken });
     } catch (err) {
         console.error("Login error:", err);
         sendError(res, "Failed to login", 500);
@@ -56,7 +73,7 @@ const register = async (req: Request, res: Response) => {
         const newUser = new User({ email, password: hashedPassword, refresh_tokens: [] });
         await newUser.save();
 
-        res.status(201).json({ message: "User registered successfully" });
+        res.status(201).send({ message: "User registered successfully" });
     } catch (err) {
         console.error("Registration error:", err);
         sendError(res, "Error during registration", 500);
@@ -91,53 +108,63 @@ const logout = async (req: Request, res: Response) => {
 
 
 const refresh = async (req: Request, res: Response) => {
-    const refreshToken = req.body.refreshToken;  // Ensure it's taking from the right place
-    if (!refreshToken) {
+const authHeader = req.headers['authorization'];
+const refreshToken = authHeader && authHeader.split(' ')[1];
+
+    if (refreshToken == null) {
         return sendError(res, "Refresh token required");
     }
 
+  //verify token
+  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, userInfo: { _id: string }) => {
+    if (err) {
+        return res.status(403).send("invalid token");
+    }
+         
     try {
-        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (!isTokenPayload(decoded)) {
-            return sendError(res, "Invalid token format", 401);
+        const user = await User.findById(userInfo._id);
+        if (user == null || user.refresh_tokens == null || !user.refresh_tokens.includes(refreshToken)) {
+            if (user.refresh_tokens != null) {
+                user.refresh_tokens = [];
+                await user.save();
+            }
+            return res.status(403).send("invalid token");
         }
-        
-        const user = await User.findById(decoded._id);
-        if (!user || !user.refresh_tokens.includes(refreshToken)) {
-            return sendError(res, "Invalid or expired refresh token", 401);
-        }
-
         // Create new tokens
-        const newAccessToken = jwt.sign({ _id: user._id.toString() }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
-        const newRefreshToken = jwt.sign({ _id: user._id.toString() }, process.env.REFRESH_TOKEN_SECRET);
+        const newAccessToken = generateTokens(user._id.toString());
+        const newRefreshToken = generateTokens(user._id.toString());
 
         // Optionally remove old and add new refresh token in database
         user.refresh_tokens = user.refresh_tokens.filter(token => token !== refreshToken);
-        user.refresh_tokens.push(newRefreshToken);
+        user.refresh_tokens.push(newRefreshToken.refreshToken);
         await user.save();
 
-        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+        return res.status(200).send({
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken
+        });
+
     } catch (err) {
         console.error("Refresh token error:", err);
         sendError(res, "Failed to refresh token", 401);
     }
+});
 };
-
     
 
 
 
-const authenticateMiddleware = async (req: Request, res: Response, next: Function) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return sendError(res, "Authentication missing");
-    try {
-        const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        console.log("Token user: " + decoded);
-        next();
-    } catch (err) {
-        return sendError(res, "Authentication failed");
-    }
-};
+// const authenticateMiddleware = async (req: Request, res: Response, next: Function) => {
+//     const authHeader = req.headers['authorization'];
+//     const token = authHeader && authHeader.split(' ')[1];
+//     if (!token) return sendError(res, "Authentication missing");
+//     try {
+//         const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+//         console.log("Token user: " + decoded);
+//         next();
+//     } catch (err) {
+//         return sendError(res, "Authentication failed");
+//     }
+// };
 
-export default { login, register, refresh, logout, authenticateMiddleware };
+export default { login, register, refresh, logout , generateTokens, sendError};

@@ -163,20 +163,30 @@ describe("Auth Tests", () => {
             jest.restoreAllMocks(); // Restore original functionality after the test
         }));
         jest.setTimeout(30000);
-        test("refresh token", () => __awaiter(void 0, void 0, void 0, function* () {
-            // Make sure to wait for the result of the request
-            let response = yield (0, supertest_1.default)(server_1.default).post("/auth/refresh")
-                .send({ refreshToken: refreshToken }) // Correctly send the refreshToken in the body if that's expected
-                .expect(200); // Assert status code directly
-            const newAccessToken = response.body.accessToken;
-            expect(newAccessToken).toBeTruthy();
-            const newRefreshToken = response.body.refreshToken;
-            expect(newRefreshToken).toBeTruthy();
-            // Test using the new access token
-            response = yield (0, supertest_1.default)(server_1.default).get("/post")
-                .set('Authorization', 'Bearer ' + newAccessToken)
-                .expect(200); // Assert status code directly
-        }), 30000); // Extended timeout if needed
+        test("refresh token test", () => __awaiter(void 0, void 0, void 0, function* () {
+            // Assuming user login and getting refresh token
+            const loginResponse = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
+                email: userEmail,
+                password: userPassword
+            });
+            expect(loginResponse.statusCode).toBe(200);
+            refreshToken = loginResponse.body.refreshToken;
+            // Refreshing token
+            const refreshResponse = yield (0, supertest_1.default)(server_1.default).get("/auth/refresh")
+                .set('Authorization', 'Bearer ' + refreshToken)
+                .send();
+            expect(refreshResponse.statusCode).toBe(200);
+            accessToken = refreshResponse.body.accessToken;
+            refreshToken = refreshResponse.body.refreshToken;
+            expect(accessToken).not.toBeNull();
+            expect(refreshToken).not.toBeNull();
+            // Verifying new access token
+            const authorizedResponse = yield (0, supertest_1.default)(server_1.default).get("/student")
+                .set('Authorization', 'Bearer ' + accessToken);
+            console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
+            console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
+            expect(authorizedResponse.statusCode).toBe(200);
+        }));
     });
     describe("Logout Tests", () => {
         test("Logout with valid token", () => __awaiter(void 0, void 0, void 0, function* () {

@@ -1,7 +1,8 @@
-import supertest from 'supertest';
+import request from "supertest";
 import app from '../server';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import user from "../models/user_model";
 
 const userEmail = "user2@gmail.com";
 const userPassword = "12345";
@@ -22,7 +23,7 @@ afterAll(async () => {
 describe("Auth Tests", () => {
     describe("Register Tests", () => {
         test("Register with valid credentials", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/register')
                 .send({
                     email: userEmail,
@@ -32,7 +33,7 @@ describe("Auth Tests", () => {
         }, 10000);
         
         test("Register with empty email", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/register')
                 .send({
                     email: "",
@@ -42,7 +43,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Register with empty password", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/register')
                 .send({
                     email: userEmail,
@@ -52,7 +53,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Register with empty email and password", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/register')
                 .send({
                     email: "",
@@ -62,7 +63,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Register with existing email", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/register')
                 .send({
                     email: userEmail,
@@ -74,7 +75,7 @@ describe("Auth Tests", () => {
 
     describe("Login Tests", () => {
         test("Login with correct credentials", async () => {
-            const loginResponse = await supertest(app)
+            const loginResponse = await request(app)
                 .post('/auth/login')
                 .send({
                     email: userEmail,
@@ -88,7 +89,7 @@ describe("Auth Tests", () => {
         });
 
         test("Login with wrong password", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: userEmail,
@@ -98,7 +99,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Login with wrong email", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: "wrongemail@example.com",
@@ -108,7 +109,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Login with empty email", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: "",
@@ -118,7 +119,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Login with empty password", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: userEmail,
@@ -128,7 +129,7 @@ describe("Auth Tests", () => {
         }, 10000);
 
         test("Login with not registered email", async () => {
-            const response = await supertest(app)
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: "nonexistent@example.com",
@@ -140,18 +141,18 @@ describe("Auth Tests", () => {
 
     describe("Token Access Tests", () => {
         test("Unauthorized access without token", async () => {
-            const response = await supertest(app).get('/post');
+            const response = await request(app).get('/post');
             expect(response.statusCode).not.toEqual(200);
         });
 
         test("Authorized access with valid token", async () => {
-            const response = await supertest(app).get("/post")
+            const response = await request(app).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
             expect(response.statusCode).toEqual(200);
         });
 
         test("Unauthorized access with invalid token", async () => {
-            const response = await supertest(app).get('/post')
+            const response = await request(app).get('/post')
                 .set('Authorization', 'Bearer ' + 'invalidToken');
             expect(response.statusCode).not.toEqual(200);
         });
@@ -162,7 +163,7 @@ describe("Auth Tests", () => {
                 throw new jwt.JsonWebTokenError('jwt expired');
             });
 
-            const response = await supertest(app).get("/post")
+            const response = await request(app).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
             expect(response.statusCode).not.toEqual(200);
 
@@ -170,25 +171,36 @@ describe("Auth Tests", () => {
         });
 
         jest.setTimeout(30000);
-        test("refresh token", async () => {
-            // Make sure to wait for the result of the request
-            let response = await supertest(app).post("/auth/refresh")
-                .send({ refreshToken: refreshToken })  // Correctly send the refreshToken in the body if that's expected
-                .expect(200);  // Assert status code directly
+        test("refresh token test", async () => {
+                // Assuming user login and getting refresh token
+                const loginResponse = await request(app).post("/auth/login").send({
+                    email: userEmail,
+                    password: userPassword
+                });
+                expect(loginResponse.statusCode).toBe(200);
+                refreshToken = loginResponse.body.refreshToken;
         
-            const newAccessToken = response.body.accessToken;
-            expect(newAccessToken).toBeTruthy();
+                // Refreshing token
+                const refreshResponse = await request(app).get("/auth/refresh")
+                    .set('Authorization', 'Bearer ' + refreshToken)
+                    .send();
         
-            const newRefreshToken = response.body.refreshToken;
-            expect(newRefreshToken).toBeTruthy();
-        
-            // Test using the new access token
-            response = await supertest(app).get("/post")
-                .set('Authorization', 'Bearer ' + newAccessToken)
-                .expect(200);  // Assert status code directly
-        }, 30000);  // Extended timeout if needed
-        
-    });
+                expect(refreshResponse.statusCode).toBe(200);
+                accessToken = refreshResponse.body.accessToken;
+                refreshToken = refreshResponse.body.refreshToken;
+                expect(accessToken).not.toBeNull();
+                expect(refreshToken).not.toBeNull();
+                
+                
+                // Verifying new access token
+                const authorizedResponse = await request(app).get("/student")
+                .set('Authorization', 'Bearer ' + accessToken);
+                console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
+                console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
+                expect(authorizedResponse.statusCode).toBe(200);
+            });
+        });
+
 
     describe("Logout Tests", () => {
         test("Logout with valid token", async () => {
@@ -196,11 +208,11 @@ describe("Auth Tests", () => {
                 console.log("Refresh token not found: Skipping logout test.");
                 return;
             }
-            const response = await supertest(app)
+            const response = await request(app)
                 .get('/auth/logout')
                 .set('Authorization', `Bearer ${refreshToken}`)
                 .send();
             expect(response.statusCode).toEqual(200);
         });
-    });
+    })
 });
