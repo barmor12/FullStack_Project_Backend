@@ -6,25 +6,39 @@ import User from '../models/user_model';
 interface TokenPayload extends JwtPayload {
     _id: string;
 }
+export function getTokenFromRequest(req: Request): string | null{
+    const authHeader = req.headers['authorization'];
+    if (authHeader == null ) return null
+    return authHeader.split(' ')[1];
+}
 
-const generateTokens = (userId: string): { accessToken: string, refreshToken: string } => {
-    const accessToken = jwt.sign({
-        _id: userId
-    }, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: process.env.JWT_TOKEN_EXPIRATION
-    });
+type Tokens = {
+    accessToken: string;
+    refreshToken: string;
+};
 
-    const refreshToken = jwt.sign({
-        _id: userId,
-        salt: Math.random()
-    }, process.env.REFRESH_TOKEN_SECRET);
+// Async function to generate access and refresh tokens
+async function generateTokens(userId: string): Promise<Tokens> {
+    const accessToken = await jwt.sign(
+        { '_id': userId },
+        process.env.ACCESS_TOKEN_SECRET,
+        { expiresIn: process.env.JWT_TOKEN_EXPIRATION }
+    );
+
+    const refreshToken = await jwt.sign(
+        { '_id': userId },
+        process.env.REFRESH_TOKEN_SECRET,
+        { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION }
+    );
 
     return {
-        accessToken: accessToken,
-        refreshToken: refreshToken
-    }
+        accessToken,
+        refreshToken
+    };
 }
-const sendError = (res: Response, message: string, statusCode: number = 400) => {
+
+
+export const sendError = (res: Response, message: string, statusCode: number = 400) => {
     if (!res.headersSent) {
         res.status(statusCode).json({ error: message });
     }
@@ -45,25 +59,21 @@ const login = async (req: Request, res: Response) => {
             return sendError(res, "Bad email or password");
         }
 
-        const accessToken = jwt.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
-        const refreshToken = jwt.sign({'_id': user._id }, process.env.REFRESH_TOKEN_SECRET);
-
-        if (!user.refresh_tokens) {
-            user.refresh_tokens = [refreshToken];
-        }
-        else user.refresh_tokens.push(refreshToken);
+        // Convert ObjectId to string and use generateTokens function to simplify token creation
+        const tokens = await generateTokens(user._id.toString());
+        if (user.refresh_tokens == null) user.refresh_tokens = [tokens.refreshToken];
+        else user.refresh_tokens.push(tokens.refreshToken);
         await user.save();
 
-        return res.status(200).send({
-            'accessToken': accessToken,
-            'refreshToken': refreshToken
-        });
-        
+        res.status(200).send(tokens);
     } catch (err) {
         console.error("Login error:", err);
         sendError(res, "Failed to login", 500);
     }
 };
+
+
+
 
 const register = async (req: Request, res: Response) => {
     const { email, password } = req.body;
@@ -88,75 +98,82 @@ const register = async (req: Request, res: Response) => {
 };
 
 const logout = async (req: Request, res: Response) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-        return sendError(res, "Authentication missing");
+
+    const refreshToken = getTokenFromRequest(req);
+    if (refreshToken == null) {
+        return sendError(res, "Token required", 401);
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
-        if (isTokenPayload(decoded)) {
-            const user = await User.findById(decoded._id);
-            if (!user || !user.refresh_tokens.includes(token)) {
-                return sendError(res, "Invalid refresh token");
-            }
-
-            user.refresh_tokens = user.refresh_tokens.filter(t => t !== token);
-            await user.save();
-            res.status(200).json({ message: "Logged out successfully" });
-        } else {
-            sendError(res, "Invalid token", 401);
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        if (!isTokenPayload(decoded)) {
+            return sendError(res, "Invalid token format", 401);
         }
+        const user = await User.findById(decoded._id);
+        if (user == null) {
+            return sendError(res, "User not found", 404);
+        }
+
+        if (!user.refresh_tokens.includes(refreshToken)) {
+            user.refresh_tokens = [];
+            await user.save();
+            return sendError(res, "Invalid refresh token", 401);
+        }
+        user.refresh_tokens.splice(user.refresh_tokens.indexOf(refreshToken), 1);
+        await user.save();
+        res.status(200).send({ message: "Logged out successfully" });
     } catch (err) {
         console.error("Logout error:", err);
-        sendError(res, "Authentication failed", 401);
+        sendError(res, "Failed to logout", 500);
     }
 };
 
 
 const refresh = async (req: Request, res: Response) => {
-const authHeader = req.headers['authorization'];
-const refreshToken = authHeader && authHeader.split(' ')[1];
-
+    // const authHeader = req.headers['authorization'];
+    // if (authHeader == null ) return sendError(res, "Authentication missing", 401);
+    // const refreshToken = authHeader.split(' ')[1];
+    // if(refreshToken == null) return sendError(res, "Token required", 401);
+    const refreshToken = getTokenFromRequest(req);
     if (refreshToken == null) {
-        return sendError(res, "Refresh token required");
+        return sendError(res, "Token required", 401);
     }
-
-  //verify token
-  jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, async (err, userInfo: { _id: string }) => {
-    if (err) {
-        return res.status(403).send("invalid token");
-    }
-         
-    try {
-        const user = await User.findById(userInfo._id);
-        if (user == null || user.refresh_tokens == null || !user.refresh_tokens.includes(refreshToken)) {
-            if (user.refresh_tokens != null) {
-                user.refresh_tokens = [];
-                await user.save();
-            }
-            return res.status(403).send("invalid token");
+    try{
+        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        if (!isTokenPayload(decoded)) {
+            return sendError(res, "Invalid token format", 401);
         }
-        // Create new tokens
-        const newAccessToken = generateTokens(user._id.toString());
-        const newRefreshToken = generateTokens(user._id.toString());
+        const user = await User.findById(decoded._id);
+        if (user == null) {
+            return sendError(res, "User not found", 404);
+        }
+        if (!user.refresh_tokens.includes(refreshToken)) {
+            user.refresh_tokens = []
+            await user.save();
+            return sendError(res, "Invalid refresh token", 401);
+        }
 
-        // Optionally remove old and add new refresh token in database
-        user.refresh_tokens = user.refresh_tokens.filter(token => token !== refreshToken);
-        user.refresh_tokens.push(newRefreshToken.refreshToken);
-        await user.save();
+        const newaccessToken = await jwt.sign(
+            { '_id': user._id }
+            , process.env.ACCESS_TOKEN_SECRET,
+            {'expiresIn':process.env.JWT_TOKEN_EXPIRATION});
+        const newrefreshToken = await jwt.sign(
+            { '_id': user._id }
+            , process.env.REFRESH_TOKEN_SECRET, 
+            {'expiresIn': process.env.JWT_REFRESH_TOKEN_EXPIRATION });
 
-        return res.status(200).send({
-            accessToken: newAccessToken,
-            refreshToken: newRefreshToken
+            user.refresh_tokens[user.refresh_tokens.indexOf(refreshToken)]
+            await user.save();
+
+            
+        res.status(200).send({ 
+            'accessToken': newaccessToken,
+            'refreshToken': newrefreshToken
         });
 
-    } catch (err) {
-        console.error("Refresh token error:", err);
-        sendError(res, "Failed to refresh token", 401);
-    }
-});
-};
-    
 
+    }catch(err){
+        return sendError(res, "Invalid token", 403);
+    }
+};
 export default { login, register, refresh, logout , generateTokens, sendError};

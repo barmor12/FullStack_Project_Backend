@@ -13,8 +13,7 @@ const postSchema = new mongoose_1.default.Schema({
         required: true
     },
     refresh_tokens: {
-        type: [String],
-        required: true
+        type: [String]
     }
 });
 module.exports = mongoose_1.default.model('User', postSchema);

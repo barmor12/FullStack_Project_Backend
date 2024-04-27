@@ -13,6 +13,7 @@ let server;
 beforeAll(async () => {
     server = app.listen(3000);
     await mongoose.model('User').deleteMany({});
+    await mongoose.model('Post').deleteMany({});
 });
 
 afterAll(async () => {
@@ -74,18 +75,22 @@ describe("Auth Tests", () => {
     });
 
     describe("Login Tests", () => {
-        test("Login with correct credentials", async () => {
-            const loginResponse = await request(app)
+        test("Login Test", async () => {
+            const response = await request(app)
                 .post('/auth/login')
                 .send({
                     email: userEmail,
                     password: userPassword
                 });
-            expect(loginResponse.statusCode).toEqual(200);
-            accessToken = loginResponse.body.accessToken;
-            refreshToken = loginResponse.body.refreshToken;
-            expect(accessToken).toBeTruthy();
-            expect(refreshToken).toBeTruthy();
+
+            expect(response.statusCode).toEqual(200);
+            accessToken = response.body.accessToken;
+            expect(accessToken).not.toBeNull();
+            refreshToken = response.body.refreshToken;
+            expect(refreshToken).not.toBeNull();
+
+            const user1 = await user.findOne({ email: userEmail });
+            expect(user1.refresh_tokens).toContain(refreshToken);
         });
 
         test("Login with wrong password", async () => {
@@ -96,6 +101,8 @@ describe("Auth Tests", () => {
                     password: "wrongpassword"
                 });
             expect(response.statusCode).not.toEqual(200);
+            const access = response.body.accessToken;
+            expect(access).toBeUndefined();
         }, 10000);
 
         test("Login with wrong email", async () => {
@@ -106,6 +113,8 @@ describe("Auth Tests", () => {
                     password: userPassword
                 });
             expect(response.statusCode).not.toEqual(200);
+            const access = response.body.accessToken;
+            expect(access).toBeUndefined();
         }, 10000);
 
         test("Login with empty email", async () => {
@@ -116,6 +125,8 @@ describe("Auth Tests", () => {
                     password: userPassword
                 });
             expect(response.statusCode).not.toEqual(200);
+
+
         }, 10000);
 
         test("Login with empty password", async () => {
@@ -126,6 +137,7 @@ describe("Auth Tests", () => {
                     password: ""
                 });
             expect(response.statusCode).not.toEqual(200);
+
         }, 10000);
 
         test("Login with not registered email", async () => {
@@ -133,7 +145,7 @@ describe("Auth Tests", () => {
                 .post('/auth/login')
                 .send({
                     email: "nonexistent@example.com",
-                    password: "12345"
+                    password: userPassword
                 });
             expect(response.statusCode).not.toEqual(200);
         }, 20000);
@@ -145,74 +157,56 @@ describe("Auth Tests", () => {
             expect(response.statusCode).not.toEqual(200);
         });
 
-        test("Authorized access with valid token", async () => {
+        test("Test Using valid Access Token:", async () => {
             const response = await request(app).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
             expect(response.statusCode).toEqual(200);
+
         });
-
-        test("Unauthorized access with invalid token", async () => {
-            const response = await request(app).get('/post')
-                .set('Authorization', 'Bearer ' + 'invalidToken');
-            expect(response.statusCode).not.toEqual(200);
-        });
-
-        test("test expired token", async () => {
-            // Simulate token expiration
-            jest.spyOn(jwt, 'verify').mockImplementationOnce(() => {
-                throw new jwt.JsonWebTokenError('jwt expired');
-            });
-
+        test("Test Using Worng Access Token:", async () => {
             const response = await request(app).get("/post")
-                .set('Authorization', 'Bearer ' + accessToken);
+                .set('Authorization', 'Bearer 1' + accessToken);
             expect(response.statusCode).not.toEqual(200);
-
-            jest.restoreAllMocks();  // Restore original functionality after the test
         });
 
         jest.setTimeout(30000);
-        test("refresh token test", async () => {
-                // Assuming user login and getting refresh token
-                const loginResponse = await request(app).post("/auth/login").send({
-                    email: userEmail,
-                    password: userPassword
-                });
-                expect(loginResponse.statusCode).toBe(200);
-                refreshToken = loginResponse.body.refreshToken;
-        
-                // Refreshing token
-                const refreshResponse = await request(app).get("/auth/refresh")
-                    .set('Authorization', 'Bearer ' + refreshToken)
-                    .send();
-        
-                expect(refreshResponse.statusCode).toBe(200);
-                accessToken = refreshResponse.body.accessToken;
-                refreshToken = refreshResponse.body.refreshToken;
-                expect(accessToken).not.toBeNull();
-                expect(refreshToken).not.toBeNull();
-                
-                
-                // Verifying new access token
-                const authorizedResponse = await request(app).get("/student")
+        test("test expired token", async () => {
+            await new Promise(r => setTimeout(r, 10000));
+            const response = await request(app).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
-                console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
-                console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
-                expect(authorizedResponse.statusCode).toBe(200);
-            });
+            expect(response.statusCode).not.toEqual(200);
         });
 
+        test("refresh token test", async () => {
+            let response = await request(app).get("/auth/refresh").set
+            ('Authorization', 'Bearer ' + refreshToken);   
+            expect(response.statusCode).toEqual(200);
+
+            const newaccessToken = response.body.accessToken;
+            expect(newaccessToken).not.toBeNull();
+            const newrefreshToken = response.body.refreshToken;
+            expect(newrefreshToken).not.toBeNull();
+
+            response = await request(app).get("/post")
+                .set('Authorization', 'Bearer ' + newaccessToken);
+            expect(response.statusCode).toEqual(200);
+
+
+
+
+        });
+    });
 
     describe("Logout Tests", () => {
-        test("Logout with valid token", async () => {
+        test("Logout test", async () => {
             if (!refreshToken) {
                 console.log("Refresh token not found: Skipping logout test.");
                 return;
             }
             const response = await request(app)
                 .get('/auth/logout')
-                .set('Authorization', `Bearer ${refreshToken}`)
-                .send();
+                .set('Authorization', 'Bearer ' + refreshToken).send();
             expect(response.statusCode).toEqual(200);
         });
-    })
+    });
 });

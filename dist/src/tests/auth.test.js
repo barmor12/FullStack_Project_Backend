@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const supertest_1 = __importDefault(require("supertest"));
 const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const user_model_1 = __importDefault(require("../models/user_model"));
 const userEmail = "user2@gmail.com";
 const userPassword = "12345";
 let accessToken = "";
@@ -24,6 +24,7 @@ let server;
 beforeAll(() => __awaiter(void 0, void 0, void 0, function* () {
     server = server_1.default.listen(3000);
     yield mongoose_1.default.model('User').deleteMany({});
+    yield mongoose_1.default.model('Post').deleteMany({});
 }));
 afterAll(() => __awaiter(void 0, void 0, void 0, function* () {
     yield mongoose_1.default.connection.close();
@@ -78,18 +79,20 @@ describe("Auth Tests", () => {
         }), 10000);
     });
     describe("Login Tests", () => {
-        test("Login with correct credentials", () => __awaiter(void 0, void 0, void 0, function* () {
-            const loginResponse = yield (0, supertest_1.default)(server_1.default)
+        test("Login Test", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default)
                 .post('/auth/login')
                 .send({
                 email: userEmail,
                 password: userPassword
             });
-            expect(loginResponse.statusCode).toEqual(200);
-            accessToken = loginResponse.body.accessToken;
-            refreshToken = loginResponse.body.refreshToken;
-            expect(accessToken).toBeTruthy();
-            expect(refreshToken).toBeTruthy();
+            expect(response.statusCode).toEqual(200);
+            accessToken = response.body.accessToken;
+            expect(accessToken).not.toBeNull();
+            refreshToken = response.body.refreshToken;
+            expect(refreshToken).not.toBeNull();
+            const user1 = yield user_model_1.default.findOne({ email: userEmail });
+            expect(user1.refresh_tokens).toContain(refreshToken);
         }));
         test("Login with wrong password", () => __awaiter(void 0, void 0, void 0, function* () {
             const response = yield (0, supertest_1.default)(server_1.default)
@@ -99,6 +102,8 @@ describe("Auth Tests", () => {
                 password: "wrongpassword"
             });
             expect(response.statusCode).not.toEqual(200);
+            const access = response.body.accessToken;
+            expect(access).toBeUndefined();
         }), 10000);
         test("Login with wrong email", () => __awaiter(void 0, void 0, void 0, function* () {
             const response = yield (0, supertest_1.default)(server_1.default)
@@ -108,6 +113,8 @@ describe("Auth Tests", () => {
                 password: userPassword
             });
             expect(response.statusCode).not.toEqual(200);
+            const access = response.body.accessToken;
+            expect(access).toBeUndefined();
         }), 10000);
         test("Login with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
             const response = yield (0, supertest_1.default)(server_1.default)
@@ -132,7 +139,7 @@ describe("Auth Tests", () => {
                 .post('/auth/login')
                 .send({
                 email: "nonexistent@example.com",
-                password: "12345"
+                password: userPassword
             });
             expect(response.statusCode).not.toEqual(200);
         }), 20000);
@@ -142,62 +149,44 @@ describe("Auth Tests", () => {
             const response = yield (0, supertest_1.default)(server_1.default).get('/post');
             expect(response.statusCode).not.toEqual(200);
         }));
-        test("Authorized access with valid token", () => __awaiter(void 0, void 0, void 0, function* () {
+        test("Test Using valid Access Token:", () => __awaiter(void 0, void 0, void 0, function* () {
             const response = yield (0, supertest_1.default)(server_1.default).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
             expect(response.statusCode).toEqual(200);
         }));
-        test("Unauthorized access with invalid token", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default).get('/post')
-                .set('Authorization', 'Bearer ' + 'invalidToken');
+        test("Test Using Worng Access Token:", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default).get("/post")
+                .set('Authorization', 'Bearer 1' + accessToken);
             expect(response.statusCode).not.toEqual(200);
         }));
+        jest.setTimeout(30000);
         test("test expired token", () => __awaiter(void 0, void 0, void 0, function* () {
-            // Simulate token expiration
-            jest.spyOn(jsonwebtoken_1.default, 'verify').mockImplementationOnce(() => {
-                throw new jsonwebtoken_1.default.JsonWebTokenError('jwt expired');
-            });
+            yield new Promise(r => setTimeout(r, 10000));
             const response = yield (0, supertest_1.default)(server_1.default).get("/post")
                 .set('Authorization', 'Bearer ' + accessToken);
             expect(response.statusCode).not.toEqual(200);
-            jest.restoreAllMocks(); // Restore original functionality after the test
         }));
-        jest.setTimeout(30000);
         test("refresh token test", () => __awaiter(void 0, void 0, void 0, function* () {
-            // Assuming user login and getting refresh token
-            const loginResponse = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
-                email: userEmail,
-                password: userPassword
-            });
-            expect(loginResponse.statusCode).toBe(200);
-            refreshToken = loginResponse.body.refreshToken;
-            // Refreshing token
-            const refreshResponse = yield (0, supertest_1.default)(server_1.default).get("/auth/refresh")
-                .set('Authorization', 'Bearer ' + refreshToken)
-                .send();
-            expect(refreshResponse.statusCode).toBe(200);
-            accessToken = refreshResponse.body.accessToken;
-            refreshToken = refreshResponse.body.refreshToken;
-            expect(accessToken).not.toBeNull();
-            expect(refreshToken).not.toBeNull();
-            // Verifying new access token
-            const authorizedResponse = yield (0, supertest_1.default)(server_1.default).get("/student")
-                .set('Authorization', 'Bearer ' + accessToken);
-            console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
-            console.log("REFRESH_TOKEN_SECRET:", process.env.REFRESH_TOKEN_SECRET);
-            expect(authorizedResponse.statusCode).toBe(200);
+            let response = yield (0, supertest_1.default)(server_1.default).get("/auth/refresh").set('Authorization', 'Bearer ' + refreshToken);
+            expect(response.statusCode).toEqual(200);
+            const newaccessToken = response.body.accessToken;
+            expect(newaccessToken).not.toBeNull();
+            const newrefreshToken = response.body.refreshToken;
+            expect(newrefreshToken).not.toBeNull();
+            response = yield (0, supertest_1.default)(server_1.default).get("/post")
+                .set('Authorization', 'Bearer ' + newaccessToken);
+            expect(response.statusCode).toEqual(200);
         }));
     });
     describe("Logout Tests", () => {
-        test("Logout with valid token", () => __awaiter(void 0, void 0, void 0, function* () {
+        test("Logout test", () => __awaiter(void 0, void 0, void 0, function* () {
             if (!refreshToken) {
                 console.log("Refresh token not found: Skipping logout test.");
                 return;
             }
             const response = yield (0, supertest_1.default)(server_1.default)
                 .get('/auth/logout')
-                .set('Authorization', `Bearer ${refreshToken}`)
-                .send();
+                .set('Authorization', 'Bearer ' + refreshToken).send();
             expect(response.statusCode).toEqual(200);
         }));
     });

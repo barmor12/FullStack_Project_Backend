@@ -13,21 +13,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-// Make sure sendError is correctly imported and used.
-const auth_controller_1 = __importDefault(require("../controllers/auth_controller"));
+// Assuming sendError is correctly imported from the auth_controller
+const auth_controller_1 = require("../controllers/auth_controller");
+const auth_controller_2 = require("../controllers/auth_controller");
+function isTokenPayload(payload) {
+    return payload && typeof payload === 'object' && '_id' in payload;
+}
 const authenticateMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token)
-        return auth_controller_1.default.sendError(res, "Authentication missing"); // Make sure sendError is called correctly.
+    const token = (0, auth_controller_2.getTokenFromRequest)(req);
+    if (token == null) {
+        return (0, auth_controller_1.sendError)(res, "Token required", 401);
+    }
     try {
-        // You should specify the type for the decoded token if possible, for better type safety.
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET || ''); // Use a fallback for the secret.
-        console.log("Token user: ", decoded);
+        const decoded = yield jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        if (!isTokenPayload(decoded)) {
+            return (0, auth_controller_1.sendError)(res, "Invalid token data", 403);
+        }
+        req.body.userId = decoded._id; // Attach user ID directly to the request object
+        console.log("Authenticated user ID: " + decoded._id); // Debugging output
         next();
     }
     catch (err) {
-        return auth_controller_1.default.sendError(res, "Authentication failed"); // Make sure sendError is called correctly.
+        console.error(err); // Log the error for debugging
+        return (0, auth_controller_1.sendError)(res, "Invalid token", 403);
     }
 });
 exports.default = authenticateMiddleware;

@@ -1,24 +1,35 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-// Make sure sendError is correctly imported and used.
-import Error from '../controllers/auth_controller';
+// Assuming sendError is correctly imported from the auth_controller
+import { sendError } from '../controllers/auth_controller';
+import { getTokenFromRequest } from '../controllers/auth_controller';
+
+interface TokenPayload {
+    _id: string;
+}
+
+function isTokenPayload(payload: any): payload is TokenPayload {
+    return payload && typeof payload === 'object' && '_id' in payload;
+}
 
 const authenticateMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return Error.sendError(res, "Authentication missing"); // Make sure sendError is called correctly.
-
+    const token = getTokenFromRequest(req);
+    if (token == null) {
+        return sendError(res, "Token required", 401);
+    }
     try {
-        // You should specify the type for the decoded token if possible, for better type safety.
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET || ''); // Use a fallback for the secret.
-        console.log("Token user: ", decoded);
+        const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET) as any;
+        if (!isTokenPayload(decoded)) {
+            return sendError(res, "Invalid token data", 403);
+        }
+        req.body.userId = decoded._id;  // Attach user ID directly to the request object
+        console.log("Authenticated user ID: " + decoded._id); // Debugging output
         next();
     } catch (err) {
-        return Error.sendError(res, "Authentication failed"); // Make sure sendError is called correctly.
+        console.error(err); // Log the error for debugging
+        return sendError(res, "Invalid token", 403);
     }
 };
 
 export default authenticateMiddleware;
-
-
