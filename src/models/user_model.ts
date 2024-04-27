@@ -10,8 +10,7 @@ const postSchema = new mongoose.Schema({
         required: true
     },
     refresh_tokens: {
-        type: [String],
-        required: true
+        type: [String]
     }
 });
 

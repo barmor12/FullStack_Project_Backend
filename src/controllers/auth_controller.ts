@@ -45,13 +45,20 @@ const login = async (req: Request, res: Response) => {
             return sendError(res, "Bad email or password");
         }
 
-        const accessToken = jwt.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EX });
+        const accessToken = jwt.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
         const refreshToken = jwt.sign({'_id': user._id }, process.env.REFRESH_TOKEN_SECRET);
 
-        user.refresh_tokens.push(refreshToken);
+        if (!user.refresh_tokens) {
+            user.refresh_tokens = [refreshToken];
+        }
+        else user.refresh_tokens.push(refreshToken);
         await user.save();
 
-        res.status(200).send({ accessToken, refreshToken });
+        return res.status(200).send({
+            'accessToken': accessToken,
+            'refreshToken': refreshToken
+        });
+        
     } catch (err) {
         console.error("Login error:", err);
         sendError(res, "Failed to login", 500);
@@ -151,20 +158,5 @@ const refreshToken = authHeader && authHeader.split(' ')[1];
 });
 };
     
-
-
-
-// const authenticateMiddleware = async (req: Request, res: Response, next: Function) => {
-//     const authHeader = req.headers['authorization'];
-//     const token = authHeader && authHeader.split(' ')[1];
-//     if (!token) return sendError(res, "Authentication missing");
-//     try {
-//         const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-//         console.log("Token user: " + decoded);
-//         next();
-//     } catch (err) {
-//         return sendError(res, "Authentication failed");
-//     }
-// };
 
 export default { login, register, refresh, logout , generateTokens, sendError};

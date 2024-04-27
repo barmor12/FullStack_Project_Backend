@@ -48,11 +48,18 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!user || !(yield bcrypt_1.default.compare(password, user.password))) {
             return sendError(res, "Bad email or password");
         }
-        const accessToken = jsonwebtoken_1.default.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EX });
+        const accessToken = jsonwebtoken_1.default.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
         const refreshToken = jsonwebtoken_1.default.sign({ '_id': user._id }, process.env.REFRESH_TOKEN_SECRET);
-        user.refresh_tokens.push(refreshToken);
+        if (!user.refresh_tokens) {
+            user.refresh_tokens = [refreshToken];
+        }
+        else
+            user.refresh_tokens.push(refreshToken);
         yield user.save();
-        res.status(200).send({ accessToken, refreshToken });
+        return res.status(200).send({
+            'accessToken': accessToken,
+            'refreshToken': refreshToken
+        });
     }
     catch (err) {
         console.error("Login error:", err);
@@ -143,17 +150,5 @@ const refresh = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
     }));
 });
-// const authenticateMiddleware = async (req: Request, res: Response, next: Function) => {
-//     const authHeader = req.headers['authorization'];
-//     const token = authHeader && authHeader.split(' ')[1];
-//     if (!token) return sendError(res, "Authentication missing");
-//     try {
-//         const decoded = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-//         console.log("Token user: " + decoded);
-//         next();
-//     } catch (err) {
-//         return sendError(res, "Authentication failed");
-//     }
-// };
 exports.default = { login, register, refresh, logout, generateTokens, sendError };
 //# sourceMappingURL=auth_controller.js.map
