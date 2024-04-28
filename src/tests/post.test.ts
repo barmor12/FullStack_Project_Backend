@@ -1,5 +1,5 @@
 // Import necessary modules and set up test environment
-import supertest from 'supertest';
+import request from 'supertest';
 import mongoose from 'mongoose';
 import app from '../server';
 import Post from '../models/post_model'; // Ensure this is the correct path to your Post model
@@ -25,7 +25,7 @@ afterAll(async () => {
 // Define the tests suite
 describe("posts Tests", () => {
     test("Add new post", async () => {
-        const response = await supertest(app)
+        const response = await request(app)
             .post('/post')
             .send({
                 message: newPostMessage,
@@ -38,20 +38,26 @@ describe("posts Tests", () => {
     });
 
     test("Get all posts", async () => {
-        const response = await supertest(app).get('/post');
+        const response = await request(app).get('/post');
         expect(response.statusCode).toEqual(200);
         expect(response.body).toBeInstanceOf(Array);
     });
 
     test("Get post by id", async () => {
-        const response = await supertest(app).get(`/post/${newPostId}`);
+        const response = await request(app).get(`/post/${newPostId}`);
         expect(response.statusCode).toEqual(200);
         expect(response.body.message).toEqual(newPostMessage);
         expect(response.body.sender).toEqual(newPostSender);
     });
+    test("get post by sender", async () => {
+        const response = await request(app).get('/post?sender=' + newPostSender);
+        expect(response.statusCode).toEqual(200);
+        expect(response.body[0].message).toEqual(newPostMessage);
+        expect(response.body[0].sender).toEqual(newPostSender);
+    });
 
     test("Update post", async () => {
-        const response = await supertest(app)
+        const response = await request(app)
             .put('/post/' + newPostId)
             .send({
                 message: 'Updated message',
@@ -64,12 +70,12 @@ describe("posts Tests", () => {
     
     // Example test for deleting a post
     test("Delete post", async () => {
-        const response = await supertest(app).delete('/post/' + newPostId);
+        const response = await request(app).delete('/post/' + newPostId);
         expect(response.statusCode).toEqual(200);
     });
 
     test("Delete post that does not exist", async () => {
-        const response = await supertest(app)
+        const response = await request(app)
             .delete(`/post/${newPostId}`); // Trying to delete the same post again
         expect(response.statusCode).toEqual(404);
     });

@@ -56,6 +56,12 @@ describe("posts Tests", () => {
         expect(response.body.message).toEqual(newPostMessage);
         expect(response.body.sender).toEqual(newPostSender);
     }));
+    test("get post by sender", () => __awaiter(void 0, void 0, void 0, function* () {
+        const response = yield (0, supertest_1.default)(server_1.default).get('/post?sender=' + newPostSender);
+        expect(response.statusCode).toEqual(200);
+        expect(response.body[0].message).toEqual(newPostMessage);
+        expect(response.body[0].sender).toEqual(newPostSender);
+    }));
     test("Update post", () => __awaiter(void 0, void 0, void 0, function* () {
         const response = yield (0, supertest_1.default)(server_1.default)
             .put('/post/' + newPostId)

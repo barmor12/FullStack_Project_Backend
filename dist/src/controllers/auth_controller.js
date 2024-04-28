@@ -29,8 +29,8 @@ function generateTokens(userId) {
         const accessToken = yield jsonwebtoken_1.default.sign({ '_id': userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
         const refreshToken = yield jsonwebtoken_1.default.sign({ '_id': userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION });
         return {
-            accessToken,
-            refreshToken
+            'accessToken': accessToken,
+            'refreshToken': refreshToken
         };
     });
 }
@@ -116,10 +116,6 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const refresh = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // const authHeader = req.headers['authorization'];
-    // if (authHeader == null ) return sendError(res, "Authentication missing", 401);
-    // const refreshToken = authHeader.split(' ')[1];
-    // if(refreshToken == null) return sendError(res, "Token required", 401);
     const refreshToken = getTokenFromRequest(req);
     if (refreshToken == null) {
         return (0, exports.sendError)(res, "Token required", 401);

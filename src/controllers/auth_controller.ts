@@ -32,8 +32,8 @@ async function generateTokens(userId: string): Promise<Tokens> {
     );
 
     return {
-        accessToken,
-        refreshToken
+        'accessToken': accessToken,
+        'refreshToken':refreshToken
     };
 }
 
@@ -130,10 +130,6 @@ const logout = async (req: Request, res: Response) => {
 
 
 const refresh = async (req: Request, res: Response) => {
-    // const authHeader = req.headers['authorization'];
-    // if (authHeader == null ) return sendError(res, "Authentication missing", 401);
-    // const refreshToken = authHeader.split(' ')[1];
-    // if(refreshToken == null) return sendError(res, "Token required", 401);
     const refreshToken = getTokenFromRequest(req);
     if (refreshToken == null) {
         return sendError(res, "Token required", 401);
