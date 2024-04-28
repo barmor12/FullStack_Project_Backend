@@ -1,5 +1,7 @@
 import express from 'express';
 const app = express();
+import http from 'http';
+const server = http.createServer(app);
 import dotenv from 'dotenv'
 dotenv.config();
 import bodyParser from 'body-parser';
@@ -46,4 +48,4 @@ if (process.env.NODE_ENV === "development") {
     app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
   }
 
-export = app;
+export = server;

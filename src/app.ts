@@ -1,5 +1,10 @@
-import app from './server';
+import server from './server';
+import io from './socket_server';
+io(server);
 
-app.listen(process.env.PORT, () => {
+
+server.listen(process.env.PORT, () => {
     console.log('Server is running on port:', process.env.PORT);
 });
+
+export = server;
