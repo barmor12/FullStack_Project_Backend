@@ -1,4 +1,4 @@
-# SCE Project 2024 By Bar Mor
+# FullStack Project By Bar Mor
 
 This repository contains a React Native application designed for the SCE Project 2024. The application enables users to efficiently browse and view video content, integrating with YouTube APIs to enhance the user experience.
 
