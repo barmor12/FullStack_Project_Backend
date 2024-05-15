@@ -1,14 +1,14 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const postSchema = new mongoose.Schema({
-    message: {  
-        type: String,
-        required: true
-    },
-    sender: {
-        type: String,
-        required: true
-    },
+  message: {
+    type: String,
+    required: true,
+  },
+  sender: {
+    type: String,
+    required: true, // וודא שהשולח הוא חובה
+  },
 });
 
-export = mongoose.model('Post', postSchema);
+export default mongoose.model("Post", postSchema);
