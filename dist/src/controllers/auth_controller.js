@@ -16,21 +16,37 @@ exports.sendError = exports.getTokenFromRequest = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user_model"));
+const multer_1 = __importDefault(require("multer"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 function getTokenFromRequest(req) {
-    const authHeader = req.headers['authorization'];
-    if (authHeader == null)
+    const authHeader = req.headers["authorization"];
+    if (!authHeader)
         return null;
-    return authHeader.split(' ')[1];
+    return authHeader.split(" ")[1];
 }
 exports.getTokenFromRequest = getTokenFromRequest;
-// Async function to generate access and refresh tokens
+// Create uploads directory if it doesn't exist
+const uploadsDir = path_1.default.join(__dirname, "..", "uploads");
+if (!fs_1.default.existsSync(uploadsDir)) {
+    fs_1.default.mkdirSync(uploadsDir, { recursive: true });
+}
+const storage = multer_1.default.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir); // תיקיית יעד להעלאת קבצים
+    },
+    filename: function (req, file, cb) {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
+});
+const upload = (0, multer_1.default)({ storage: storage });
 function generateTokens(userId) {
     return __awaiter(this, void 0, void 0, function* () {
-        const accessToken = yield jsonwebtoken_1.default.sign({ '_id': userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
-        const refreshToken = yield jsonwebtoken_1.default.sign({ '_id': userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION });
+        const accessToken = jsonwebtoken_1.default.sign({ _id: userId }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: process.env.JWT_TOKEN_EXPIRATION });
+        const refreshToken = jsonwebtoken_1.default.sign({ _id: userId }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION });
         return {
-            'accessToken': accessToken,
-            'refreshToken': refreshToken
+            accessToken,
+            refreshToken,
         };
     });
 }
@@ -40,9 +56,6 @@ const sendError = (res, message, statusCode = 400) => {
     }
 };
 exports.sendError = sendError;
-function isTokenPayload(payload) {
-    return payload && typeof payload === 'object' && '_id' in payload;
-}
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -53,12 +66,8 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!user || !(yield bcrypt_1.default.compare(password, user.password))) {
             return (0, exports.sendError)(res, "Bad email or password");
         }
-        // Convert ObjectId to string and use generateTokens function to simplify token creation
         const tokens = yield generateTokens(user._id.toString());
-        if (user.refresh_tokens == null)
-            user.refresh_tokens = [tokens.refreshToken];
-        else
-            user.refresh_tokens.push(tokens.refreshToken);
+        user.refresh_tokens.push(tokens.refreshToken);
         yield user.save();
         res.status(200).send(tokens);
     }
@@ -68,47 +77,52 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password } = req.body;
+    console.log("Received body:", req.body);
+    console.log("Received file:", req.file);
+    const { email, password, name } = req.body;
+    let profilePic = "";
+    if (req.file) {
+        profilePic = `/uploads/${req.file.filename}`;
+        console.log("Profile pic path:", profilePic); // לוג לנתיב התמונה
+    }
     if (!email || !password) {
         return (0, exports.sendError)(res, "Email and password are required");
     }
     try {
         const existingUser = yield user_model_1.default.findOne({ email });
         if (existingUser) {
-            return (0, exports.sendError)(res, "User already exists");
+            return (0, exports.sendError)(res, "User with this email already exists");
         }
         const hashedPassword = yield bcrypt_1.default.hash(password, 10);
-        const newUser = new user_model_1.default({ email, password: hashedPassword, refresh_tokens: [] });
-        yield newUser.save();
-        res.status(201).send({ message: "User registered successfully" });
+        const user = new user_model_1.default({
+            email,
+            password: hashedPassword,
+            profilePic,
+            name, // שמירת השם
+        });
+        const newUser = yield user.save();
+        const tokens = yield generateTokens(newUser._id.toString());
+        res.status(201).json({ user: newUser, tokens });
     }
     catch (err) {
         console.error("Registration error:", err);
-        (0, exports.sendError)(res, "Error during registration", 500);
+        (0, exports.sendError)(res, "Failed to register", 500);
     }
 });
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const refreshToken = getTokenFromRequest(req);
-    if (refreshToken == null) {
-        return (0, exports.sendError)(res, "Token required", 401);
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+        return (0, exports.sendError)(res, "Refresh token is required");
     }
     try {
-        const decoded = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (!isTokenPayload(decoded)) {
-            return (0, exports.sendError)(res, "Invalid token format", 401);
-        }
-        const user = yield user_model_1.default.findById(decoded._id);
-        if (user == null) {
+        const payload = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(payload._id);
+        if (!user) {
             return (0, exports.sendError)(res, "User not found", 404);
         }
-        if (!user.refresh_tokens.includes(refreshToken)) {
-            user.refresh_tokens = [];
-            yield user.save();
-            return (0, exports.sendError)(res, "Invalid refresh token", 401);
-        }
-        user.refresh_tokens.splice(user.refresh_tokens.indexOf(refreshToken), 1);
+        user.refresh_tokens = user.refresh_tokens.filter((token) => token !== refreshToken);
         yield user.save();
-        res.status(200).send({ message: "Logged out successfully" });
+        res.status(200).json({ message: "Logged out successfully" });
     }
     catch (err) {
         console.error("Logout error:", err);
@@ -116,36 +130,53 @@ const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const refresh = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const refreshToken = getTokenFromRequest(req);
-    if (refreshToken == null) {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+        return (0, exports.sendError)(res, "Refresh token is required");
+    }
+    try {
+        const payload = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(payload._id);
+        if (!user || !user.refresh_tokens.includes(refreshToken)) {
+            return (0, exports.sendError)(res, "Invalid refresh token", 403);
+        }
+        const tokens = yield generateTokens(user._id.toString());
+        user.refresh_tokens = user.refresh_tokens.filter((token) => token !== refreshToken);
+        user.refresh_tokens.push(tokens.refreshToken);
+        yield user.save();
+        res.status(200).json(tokens);
+    }
+    catch (err) {
+        console.error("Refresh token error:", err);
+        (0, exports.sendError)(res, "Failed to refresh token", 500);
+    }
+});
+const getProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = getTokenFromRequest(req);
+    if (!token) {
         return (0, exports.sendError)(res, "Token required", 401);
     }
     try {
-        const decoded = jsonwebtoken_1.default.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (!isTokenPayload(decoded)) {
-            return (0, exports.sendError)(res, "Invalid token format", 401);
-        }
-        const user = yield user_model_1.default.findById(decoded._id);
-        if (user == null) {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id).select("-password -refresh_tokens");
+        if (!user) {
             return (0, exports.sendError)(res, "User not found", 404);
         }
-        if (!user.refresh_tokens.includes(refreshToken)) {
-            user.refresh_tokens = [];
-            yield user.save();
-            return (0, exports.sendError)(res, "Invalid refresh token", 401);
-        }
-        const newaccessToken = yield jsonwebtoken_1.default.sign({ '_id': user._id }, process.env.ACCESS_TOKEN_SECRET, { 'expiresIn': process.env.JWT_TOKEN_EXPIRATION });
-        const newrefreshToken = yield jsonwebtoken_1.default.sign({ '_id': user._id }, process.env.REFRESH_TOKEN_SECRET, { 'expiresIn': process.env.JWT_REFRESH_TOKEN_EXPIRATION });
-        user.refresh_tokens[user.refresh_tokens.indexOf(refreshToken)];
-        yield user.save();
-        res.status(200).send({
-            'accessToken': newaccessToken,
-            'refreshToken': newrefreshToken
-        });
+        res.status(200).send(user);
     }
     catch (err) {
-        return (0, exports.sendError)(res, "Invalid token", 403);
+        console.error("Get profile error:", err);
+        (0, exports.sendError)(res, "Failed to get profile", 500);
     }
 });
-exports.default = { login, register, refresh, logout, generateTokens, sendError: exports.sendError };
+exports.default = {
+    login,
+    register,
+    refresh,
+    logout,
+    generateTokens,
+    sendError: exports.sendError,
+    getProfile,
+    upload,
+};
 //# sourceMappingURL=auth_controller.js.map

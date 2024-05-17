@@ -1,13 +1,20 @@
 import { Request, Response } from "express";
 import Post from "../models/post_model";
+import User from "../models/user_model";
+import jwt from "jsonwebtoken";
+import { getTokenFromRequest, sendError } from "../controllers/auth_controller";
+import { TokenPayload } from "../types";
 
 const getAllPosts = async (req: Request, res: Response) => {
   try {
     let posts;
     if (typeof req.query.sender === "string") {
-      posts = await Post.find({ sender: req.query.sender });
+      posts = await Post.find({ sender: req.query.sender }).populate(
+        "sender",
+        "name email profilePic"
+      );
     } else {
-      posts = await Post.find();
+      posts = await Post.find().populate("sender", "name email profilePic");
     }
     res.status(200).send(posts);
   } catch (err) {
@@ -17,26 +24,49 @@ const getAllPosts = async (req: Request, res: Response) => {
 };
 
 const addNewPost = async (req: Request, res: Response) => {
-  console.log("Request body:", req.body);
-
-  const post = new Post({
-    message: req.body.message,
-    sender: req.body.sender,
-  });
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
 
   try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const { message } = req.body;
+    let image = "";
+
+    if (req.file) {
+      image = `/uploads/${req.file.filename}`; // שמירת הנתיב היחסי
+    }
+
+    const post = new Post({
+      message,
+      sender: user._id,
+      senderName: user.name || "Unknown",
+      image,
+    });
+
     const newPost = await post.save();
-    console.log("Post saved in db", newPost);
-    res.status(201).send({ message: "success", post: newPost }); // שים לב לשימוש ב-201 עבור יצירה מוצלחת
+    res.status(201).send({ message: "success", post: newPost });
   } catch (err) {
-    console.log("Failed to save post in db", err);
-    res.status(400).send({ error: "Error: Failed to add new post" });
+    console.error("Failed to save post in db", err);
+    sendError(res, "Error: Failed to add new post", 400);
   }
 };
 
 const getPostById = async (req: Request, res: Response) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).populate(
+      "sender",
+      "name email profilePic"
+    );
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
@@ -71,7 +101,7 @@ const deletePost = async (req: Request, res: Response) => {
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
-    res.status(200).json({ message: "Post deleted" });
+    res.json({ message: "Post deleted successfully" });
   } catch (err) {
     console.error("Error deleting post:", err);
     res.status(500).json({ message: "Server error" });

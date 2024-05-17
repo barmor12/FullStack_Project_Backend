@@ -1,18 +1,25 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const postSchema = new mongoose.Schema({
-    email: {  
-        type: String,
-        required: true
-    },
-    password: {
-        type: String,
-        required: true
-    },
-    refresh_tokens: {
-        type: [String]
-    }
+const userSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  profilePic: {
+    type: String,
+    required: false, // לא חובה, יכול להיות ריק
+  },
+  refresh_tokens: {
+    type: [String],
+  },
+  name: {
+    type: String,
+    required: false, // לא חובה, יכול להיות ריק
+  },
 });
 
-export = mongoose.model('User', postSchema);
-
+export default mongoose.model("User", userSchema);

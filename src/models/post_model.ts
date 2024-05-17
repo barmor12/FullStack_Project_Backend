@@ -6,8 +6,17 @@ const postSchema = new mongoose.Schema({
     required: true,
   },
   sender: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     required: true, // וודא שהשולח הוא חובה
+  },
+  image: {
+    type: String,
+    required: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 

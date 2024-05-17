@@ -1,175 +1,223 @@
-import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcrypt';
-import jwt, { JwtPayload } from 'jsonwebtoken';
-import User from '../models/user_model';
+import { Request, Response } from "express";
+import bcrypt from "bcrypt";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import User from "../models/user_model";
+import multer from "multer";
+import fs from "fs";
+import path from "path";
 
 interface TokenPayload extends JwtPayload {
-    _id: string;
+  _id: string;
 }
-export function getTokenFromRequest(req: Request): string | null{
-    const authHeader = req.headers['authorization'];
-    if (authHeader == null ) return null
-    return authHeader.split(' ')[1];
+
+export function getTokenFromRequest(req: Request): string | null {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader) return null;
+  return authHeader.split(" ")[1];
 }
 
 type Tokens = {
-    accessToken: string;
-    refreshToken: string;
+  accessToken: string;
+  refreshToken: string;
 };
 
-// Async function to generate access and refresh tokens
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, "..", "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir); // תיקיית יעד להעלאת קבצים
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+
+const upload = multer({ storage: storage });
+
 async function generateTokens(userId: string): Promise<Tokens> {
-    const accessToken = await jwt.sign(
-        { '_id': userId },
-        process.env.ACCESS_TOKEN_SECRET,
-        { expiresIn: process.env.JWT_TOKEN_EXPIRATION }
-    );
+  const accessToken = jwt.sign(
+    { _id: userId },
+    process.env.ACCESS_TOKEN_SECRET!,
+    { expiresIn: process.env.JWT_TOKEN_EXPIRATION! }
+  );
 
-    const refreshToken = await jwt.sign(
-        { '_id': userId },
-        process.env.REFRESH_TOKEN_SECRET,
-        { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION }
-    );
+  const refreshToken = jwt.sign(
+    { _id: userId },
+    process.env.REFRESH_TOKEN_SECRET!,
+    { expiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRATION! }
+  );
 
-    return {
-        'accessToken': accessToken,
-        'refreshToken':refreshToken
-    };
+  return {
+    accessToken,
+    refreshToken,
+  };
 }
 
-
-export const sendError = (res: Response, message: string, statusCode: number = 400) => {
-    if (!res.headersSent) {
-        res.status(statusCode).json({ error: message });
-    }
+export const sendError = (
+  res: Response,
+  message: string,
+  statusCode: number = 400
+) => {
+  if (!res.headersSent) {
+    res.status(statusCode).json({ error: message });
+  }
 };
-
-function isTokenPayload(payload: any): payload is TokenPayload {
-    return payload && typeof payload === 'object' && '_id' in payload;
-}
 
 const login = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return sendError(res, "Email and password are required");
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return sendError(res, "Email and password are required");
+  }
+  try {
+    const user = await User.findOne({ email });
+    if (!user || !(await bcrypt.compare(password, user.password))) {
+      return sendError(res, "Bad email or password");
     }
-    try {
-        const user = await User.findOne({ email });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            return sendError(res, "Bad email or password");
-        }
 
-        // Convert ObjectId to string and use generateTokens function to simplify token creation
-        const tokens = await generateTokens(user._id.toString());
-        if (user.refresh_tokens == null) user.refresh_tokens = [tokens.refreshToken];
-        else user.refresh_tokens.push(tokens.refreshToken);
-        await user.save();
+    const tokens = await generateTokens(user._id.toString());
+    user.refresh_tokens.push(tokens.refreshToken);
+    await user.save();
 
-        res.status(200).send(tokens);
-    } catch (err) {
-        console.error("Login error:", err);
-        sendError(res, "Failed to login", 500);
-    }
+    res.status(200).send(tokens);
+  } catch (err) {
+    console.error("Login error:", err);
+    sendError(res, "Failed to login", 500);
+  }
 };
 
-
-
-
 const register = async (req: Request, res: Response) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return sendError(res, "Email and password are required");
-    }
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return sendError(res, "User already exists");
-        }
+  console.log("Received body:", req.body);
+  console.log("Received file:", req.file);
 
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ email, password: hashedPassword, refresh_tokens: [] });
-        await newUser.save();
+  const { email, password, name } = req.body;
+  let profilePic = "";
 
-        res.status(201).send({ message: "User registered successfully" });
-    } catch (err) {
-        console.error("Registration error:", err);
-        sendError(res, "Error during registration", 500);
+  if (req.file) {
+    profilePic = `/uploads/${req.file.filename}`;
+    console.log("Profile pic path:", profilePic); // לוג לנתיב התמונה
+  }
+
+  if (!email || !password) {
+    return sendError(res, "Email and password are required");
+  }
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return sendError(res, "User with this email already exists");
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      email,
+      password: hashedPassword,
+      profilePic,
+      name, // שמירת השם
+    });
+
+    const newUser = await user.save();
+    const tokens = await generateTokens(newUser._id.toString());
+    res.status(201).json({ user: newUser, tokens });
+  } catch (err) {
+    console.error("Registration error:", err);
+    sendError(res, "Failed to register", 500);
+  }
 };
 
 const logout = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return sendError(res, "Refresh token is required");
+  }
 
-    const refreshToken = getTokenFromRequest(req);
-    if (refreshToken == null) {
-        return sendError(res, "Token required", 401);
+  try {
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(payload._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
     }
 
-    try {
-        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (!isTokenPayload(decoded)) {
-            return sendError(res, "Invalid token format", 401);
-        }
-        const user = await User.findById(decoded._id);
-        if (user == null) {
-            return sendError(res, "User not found", 404);
-        }
+    user.refresh_tokens = user.refresh_tokens.filter(
+      (token) => token !== refreshToken
+    );
+    await user.save();
 
-        if (!user.refresh_tokens.includes(refreshToken)) {
-            user.refresh_tokens = [];
-            await user.save();
-            return sendError(res, "Invalid refresh token", 401);
-        }
-        user.refresh_tokens.splice(user.refresh_tokens.indexOf(refreshToken), 1);
-        await user.save();
-        res.status(200).send({ message: "Logged out successfully" });
-    } catch (err) {
-        console.error("Logout error:", err);
-        sendError(res, "Failed to logout", 500);
-    }
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    sendError(res, "Failed to logout", 500);
+  }
 };
-
 
 const refresh = async (req: Request, res: Response) => {
-    const refreshToken = getTokenFromRequest(req);
-    if (refreshToken == null) {
-        return sendError(res, "Token required", 401);
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return sendError(res, "Refresh token is required");
+  }
+
+  try {
+    const payload = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(payload._id);
+    if (!user || !user.refresh_tokens.includes(refreshToken)) {
+      return sendError(res, "Invalid refresh token", 403);
     }
-    try{
-        const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-        if (!isTokenPayload(decoded)) {
-            return sendError(res, "Invalid token format", 401);
-        }
-        const user = await User.findById(decoded._id);
-        if (user == null) {
-            return sendError(res, "User not found", 404);
-        }
-        if (!user.refresh_tokens.includes(refreshToken)) {
-            user.refresh_tokens = []
-            await user.save();
-            return sendError(res, "Invalid refresh token", 401);
-        }
 
-        const newaccessToken = await jwt.sign(
-            { '_id': user._id }
-            , process.env.ACCESS_TOKEN_SECRET,
-            {'expiresIn':process.env.JWT_TOKEN_EXPIRATION});
-        const newrefreshToken = await jwt.sign(
-            { '_id': user._id }
-            , process.env.REFRESH_TOKEN_SECRET, 
-            {'expiresIn': process.env.JWT_REFRESH_TOKEN_EXPIRATION });
+    const tokens = await generateTokens(user._id.toString());
+    user.refresh_tokens = user.refresh_tokens.filter(
+      (token) => token !== refreshToken
+    );
+    user.refresh_tokens.push(tokens.refreshToken);
+    await user.save();
 
-            user.refresh_tokens[user.refresh_tokens.indexOf(refreshToken)]
-            await user.save();
-
-            
-        res.status(200).send({ 
-            'accessToken': newaccessToken,
-            'refreshToken': newrefreshToken
-        });
-
-
-    }catch(err){
-        return sendError(res, "Invalid token", 403);
-    }
+    res.status(200).json(tokens);
+  } catch (err) {
+    console.error("Refresh token error:", err);
+    sendError(res, "Failed to refresh token", 500);
+  }
 };
-export default { login, register, refresh, logout , generateTokens, sendError};
+
+const getProfile = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id).select(
+      "-password -refresh_tokens"
+    );
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    res.status(200).send(user);
+  } catch (err) {
+    console.error("Get profile error:", err);
+    sendError(res, "Failed to get profile", 500);
+  }
+};
+
+export default {
+  login,
+  register,
+  refresh,
+  logout,
+  generateTokens,
+  sendError,
+  getProfile,
+  upload,
+};
