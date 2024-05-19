@@ -20,15 +20,19 @@ import authController from "../controllers/auth_controller";
  *         - message
  *         - sender
  *       properties:
- *         email:
+ *         message:
  *           type: string
  *           description: The Post Text
- *         password:
+ *         sender:
  *           type: string
  *           description: The sender of the post
+ *         image:
+ *           type: string
+ *           description: The path of the image
  *       example:
  *         message: 'this is my new post'
- *         sender: ' 123456'
+ *         sender: '123456'
+ *         image: '/uploads/example.jpg'
  */
 
 /**
@@ -111,9 +115,13 @@ router.get("/:id", authmiddleware, post.getPostById);
  *               sender:
  *                 type: string
  *                 description: The sender's user ID.
+ *               image:
+ *                 type: string
+ *                 description: The path of the image.
  *             example:
  *               message: "Here is a new post about API documentation."
  *               sender: "123456"
+ *               image: "/uploads/example.jpg"
  *     responses:
  *       201:
  *         description: Post created successfully
@@ -182,9 +190,16 @@ router.delete("/:id", authmiddleware, post.deletePost);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/Post'
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The content of the post.
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Post updated successfully
@@ -202,6 +217,11 @@ router.delete("/:id", authmiddleware, post.deletePost);
  *         description: Server error
  */
 
-router.put("/:id", authmiddleware, post.updatePost);
+router.put(
+  "/:id",
+  authController.upload.single("image"),
+  authmiddleware,
+  post.updatePost
+);
 
 export = router;

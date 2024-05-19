@@ -166,6 +166,38 @@ const getProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         (0, exports.sendError)(res, "Failed to get profile", 500);
     }
 });
+const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = getTokenFromRequest(req);
+    if (!token) {
+        return (0, exports.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, exports.sendError)(res, "User not found", 404);
+        }
+        const { name, email, oldPassword, newPassword } = req.body;
+        if (oldPassword && newPassword) {
+            const isMatch = yield bcrypt_1.default.compare(oldPassword, user.password);
+            if (!isMatch) {
+                return (0, exports.sendError)(res, "Old password is incorrect", 400);
+            }
+            user.password = yield bcrypt_1.default.hash(newPassword, 10);
+        }
+        user.name = name || user.name;
+        user.email = email || user.email;
+        if (req.file) {
+            user.profilePic = `/uploads/${req.file.filename}`;
+        }
+        const updatedUser = yield user.save();
+        res.status(200).send(updatedUser);
+    }
+    catch (err) {
+        console.error("Update profile error:", err);
+        (0, exports.sendError)(res, "Failed to update profile", 500);
+    }
+});
 exports.default = {
     login,
     register,
@@ -175,5 +207,6 @@ exports.default = {
     sendError: exports.sendError,
     getProfile,
     upload,
+    updateProfile,
 };
 //# sourceMappingURL=auth_controller.js.map

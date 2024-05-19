@@ -79,10 +79,22 @@ const getPostById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 const updatePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = (0, auth_controller_1.getTokenFromRequest)(req);
+    if (!token) {
+        return (0, auth_controller_1.sendError)(res, "Token required", 401);
+    }
     try {
-        const post = yield post_model_1.default.findByIdAndUpdate(req.params.id, req.body, {
-            new: true,
-        });
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, auth_controller_1.sendError)(res, "User not found", 404);
+        }
+        const { message } = req.body;
+        let image = req.body.image;
+        if (req.file) {
+            image = `/uploads/${req.file.filename}`;
+        }
+        const post = yield post_model_1.default.findByIdAndUpdate(req.params.id, { message, image }, { new: true });
         if (!post) {
             return res.status(404).json({ message: "Post not found" });
         }

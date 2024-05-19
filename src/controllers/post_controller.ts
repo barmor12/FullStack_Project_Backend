@@ -81,10 +81,33 @@ const getPostById = async (req: Request, res: Response) => {
 };
 
 const updatePost = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
   try {
-    const post = await Post.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const { message } = req.body;
+    let image = req.body.image;
+
+    if (req.file) {
+      image = `/uploads/${req.file.filename}`;
+    }
+
+    const post = await Post.findByIdAndUpdate(
+      req.params.id,
+      { message, image },
+      { new: true }
+    );
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }

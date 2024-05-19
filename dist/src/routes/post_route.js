@@ -23,15 +23,19 @@ const auth_controller_1 = __importDefault(require("../controllers/auth_controlle
  *         - message
  *         - sender
  *       properties:
- *         email:
+ *         message:
  *           type: string
  *           description: The Post Text
- *         password:
+ *         sender:
  *           type: string
  *           description: The sender of the post
+ *         image:
+ *           type: string
+ *           description: The path of the image
  *       example:
  *         message: 'this is my new post'
- *         sender: ' 123456'
+ *         sender: '123456'
+ *         image: '/uploads/example.jpg'
  */
 /**
  * @swagger
@@ -111,9 +115,13 @@ router.get("/:id", auth_middleware_1.default, post_controller_1.default.getPostB
  *               sender:
  *                 type: string
  *                 description: The sender's user ID.
+ *               image:
+ *                 type: string
+ *                 description: The path of the image.
  *             example:
  *               message: "Here is a new post about API documentation."
  *               sender: "123456"
+ *               image: "/uploads/example.jpg"
  *     responses:
  *       201:
  *         description: Post created successfully
@@ -175,9 +183,16 @@ router.delete("/:id", auth_middleware_1.default, post_controller_1.default.delet
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/Post'
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The content of the post.
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: Post updated successfully
@@ -194,6 +209,6 @@ router.delete("/:id", auth_middleware_1.default, post_controller_1.default.delet
  *       500:
  *         description: Server error
  */
-router.put("/:id", auth_middleware_1.default, post_controller_1.default.updatePost);
+router.put("/:id", auth_controller_1.default.upload.single("image"), auth_middleware_1.default, post_controller_1.default.updatePost);
 module.exports = router;
 //# sourceMappingURL=post_route.js.map

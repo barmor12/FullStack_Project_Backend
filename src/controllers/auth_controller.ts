@@ -206,6 +206,46 @@ const getProfile = async (req: Request, res: Response) => {
   }
 };
 
+const updateProfile = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const { name, email, oldPassword, newPassword } = req.body;
+    if (oldPassword && newPassword) {
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return sendError(res, "Old password is incorrect", 400);
+      }
+      user.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    user.name = name || user.name;
+    user.email = email || user.email;
+
+    if (req.file) {
+      user.profilePic = `/uploads/${req.file.filename}`;
+    }
+
+    const updatedUser = await user.save();
+    res.status(200).send(updatedUser);
+  } catch (err) {
+    console.error("Update profile error:", err);
+    sendError(res, "Failed to update profile", 500);
+  }
+};
+
 export default {
   login,
   register,
@@ -215,4 +255,5 @@ export default {
   sendError,
   getProfile,
   upload,
+  updateProfile,
 };

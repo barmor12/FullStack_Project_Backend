@@ -60,7 +60,7 @@ const router = express_1.default.Router();
  * @swagger
  * /auth/register:
  *   post:
- *     summary: registers a new user
+ *     summary: Registers a new user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -81,7 +81,7 @@ router.post("/register", auth_controller_1.default.upload.single("profilePic"), 
  * @swagger
  * /auth/login:
  *   post:
- *     summary: login existing user by email and password
+ *     summary: Login existing user by email and password
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -91,7 +91,7 @@ router.post("/register", auth_controller_1.default.upload.single("profilePic"), 
  *             $ref: '#/components/schemas/User'
  *     responses:
  *       200:
- *         description: The acess & refresh tokens
+ *         description: The access & refresh tokens
  *         content:
  *           application/json:
  *             schema:
@@ -102,9 +102,9 @@ router.post("/login", auth_controller_1.default.login);
  * @swagger
  * /auth/logout:
  *   post:
- *     summary: logout a user
+ *     summary: Logout a user
  *     tags: [Auth]
- *     description: need to provide the refresh token in the body
+ *     description: Need to provide the refresh token in the body
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -119,16 +119,16 @@ router.post("/login", auth_controller_1.default.login);
  *                 description: The JWT refresh token
  *     responses:
  *       200:
- *         description: logout completed successfully
+ *         description: Logout completed successfully
  */
 router.post("/logout", auth_controller_1.default.logout);
 /**
  * @swagger
  * /auth/refresh:
  *   post:
- *     summary: get a new access and refresh tokens using the refresh token
+ *     summary: Get a new access and refresh tokens using the refresh token
  *     tags: [Auth]
- *     description: need to provide the refresh token in the body
+ *     description: Need to provide the refresh token in the body
  *     requestBody:
  *       required: true
  *       content:
@@ -141,7 +141,7 @@ router.post("/logout", auth_controller_1.default.logout);
  *                 description: The JWT refresh token
  *     responses:
  *       200:
- *         description: The acess & refresh tokens
+ *         description: The access & refresh tokens
  *         content:
  *           application/json:
  *             schema:
@@ -152,7 +152,7 @@ router.post("/refresh", auth_controller_1.default.refresh);
  * @swagger
  * /auth/user:
  *   get:
- *     summary: get the current logged-in user details
+ *     summary: Get the current logged-in user details
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -165,5 +165,42 @@ router.post("/refresh", auth_controller_1.default.refresh);
  *               $ref: '#/components/schemas/User'
  */
 router.get("/user", auth_controller_1.default.getProfile);
+/**
+ * @swagger
+ * /auth/user:
+ *   put:
+ *     summary: Update user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               oldPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: User profile updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map
