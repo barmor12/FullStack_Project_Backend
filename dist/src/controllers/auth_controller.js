@@ -33,7 +33,7 @@ if (!fs_1.default.existsSync(uploadsDir)) {
 }
 const storage = multer_1.default.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, uploadsDir); // תיקיית יעד להעלאת קבצים
+        cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
         cb(null, `${Date.now()}-${file.originalname}`);
@@ -77,13 +77,10 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Received body:", req.body);
-    console.log("Received file:", req.file);
     const { email, password, name } = req.body;
     let profilePic = "";
     if (req.file) {
         profilePic = `/uploads/${req.file.filename}`;
-        console.log("Profile pic path:", profilePic); // לוג לנתיב התמונה
     }
     if (!email || !password) {
         return (0, exports.sendError)(res, "Email and password are required");
@@ -98,7 +95,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             email,
             password: hashedPassword,
             profilePic,
-            name, // שמירת השם
+            name,
         });
         const newUser = yield user.save();
         const tokens = yield generateTokens(newUser._id.toString());

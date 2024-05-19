@@ -101,26 +101,44 @@ router.post("/login", auth_controller_1.default.login);
 /**
  * @swagger
  * /auth/logout:
- *   get:
+ *   post:
  *     summary: logout a user
  *     tags: [Auth]
- *     description: need to provide the refresh token in the auth header
+ *     description: need to provide the refresh token in the body
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: The JWT refresh token
  *     responses:
  *       200:
  *         description: logout completed successfully
  */
-router.get("/logout", auth_controller_1.default.logout);
+router.post("/logout", auth_controller_1.default.logout);
 /**
  * @swagger
  * /auth/refresh:
- *   get:
+ *   post:
  *     summary: get a new access and refresh tokens using the refresh token
  *     tags: [Auth]
- *     description: need to provide the refresh token in the auth header
- *     security:
- *       - bearerAuth: []
+ *     description: need to provide the refresh token in the body
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: The JWT refresh token
  *     responses:
  *       200:
  *         description: The acess & refresh tokens
@@ -129,6 +147,23 @@ router.get("/logout", auth_controller_1.default.logout);
  *             schema:
  *               $ref: '#/components/schemas/Tokens'
  */
-router.get("/refresh", auth_controller_1.default.refresh);
+router.post("/refresh", auth_controller_1.default.refresh);
+/**
+ * @swagger
+ * /auth/user:
+ *   get:
+ *     summary: get the current logged-in user details
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The user details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ */
+router.get("/user", auth_controller_1.default.getProfile);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map

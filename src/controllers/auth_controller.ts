@@ -29,7 +29,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, uploadsDir); // תיקיית יעד להעלאת קבצים
+    cb(null, uploadsDir);
   },
   filename: function (req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -90,15 +90,11 @@ const login = async (req: Request, res: Response) => {
 };
 
 const register = async (req: Request, res: Response) => {
-  console.log("Received body:", req.body);
-  console.log("Received file:", req.file);
-
   const { email, password, name } = req.body;
   let profilePic = "";
 
   if (req.file) {
     profilePic = `/uploads/${req.file.filename}`;
-    console.log("Profile pic path:", profilePic); // לוג לנתיב התמונה
   }
 
   if (!email || !password) {
@@ -116,7 +112,7 @@ const register = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       profilePic,
-      name, // שמירת השם
+      name,
     });
 
     const newUser = await user.save();
@@ -155,8 +151,7 @@ const logout = async (req: Request, res: Response) => {
     sendError(res, "Failed to logout", 500);
   }
 };
-
-const refresh = async (req: Request, res: Response) => {
+const refresh = async (req, res) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
     return sendError(res, "Refresh token is required");
