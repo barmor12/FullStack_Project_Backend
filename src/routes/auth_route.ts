@@ -1,6 +1,7 @@
 import express from "express";
 import authController from "../controllers/auth_controller";
 const router = express.Router();
+import passport from "passport";
 
 /**
  * @swagger
@@ -214,5 +215,69 @@ router.put(
   authController.upload.single("profilePic"),
   authController.updateProfile
 );
+
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google authentication
+ *     tags: [Auth]
+ *     description: Redirects to Google for authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to Google
+ */
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Google authentication callback
+ *     tags: [Auth]
+ *     description: Callback URL for Google authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to home page
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login" }),
+  authController.googleCallback
+);
+
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   post:
+ *     summary: Handle Google authentication callback
+ *     tags: [Auth]
+ *     description: Handles the callback after Google authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The ID token from Google
+ *     responses:
+ *       200:
+ *         description: The access & refresh tokens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tokens'
+ *       500:
+ *         description: Failed to authenticate user
+ */
+router.post("/google/callback", authController.googleCallback);
 
 export default router;

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/user_model";
 import multer from "multer";
 import fs from "fs";
@@ -9,6 +10,8 @@ import path from "path";
 interface TokenPayload extends JwtPayload {
   _id: string;
 }
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export function getTokenFromRequest(req: Request): string | null {
   const authHeader = req.headers["authorization"];
@@ -151,7 +154,8 @@ const logout = async (req: Request, res: Response) => {
     sendError(res, "Failed to logout", 500);
   }
 };
-const refresh = async (req, res) => {
+
+const refresh = async (req: Request, res: Response) => {
   const { refreshToken } = req.body;
   if (!refreshToken) {
     return sendError(res, "Refresh token is required");
@@ -246,6 +250,34 @@ const updateProfile = async (req: Request, res: Response) => {
   }
 };
 
+const googleCallback = async (req: Request, res: Response) => {
+  const { token } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID_WEB,
+    });
+
+    const payload = ticket.getPayload();
+    let user = await User.findOne({ googleId: payload?.sub });
+
+    if (!user) {
+      user = new User({
+        googleId: payload?.sub,
+        email: payload?.email,
+        name: payload?.name,
+        profilePic: payload?.picture,
+      });
+      await user.save();
+    }
+
+    const tokens = await generateTokens(user._id.toString());
+    res.json(tokens);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to authenticate user" });
+  }
+};
+
 export default {
   login,
   register,
@@ -256,4 +288,5 @@ export default {
   getProfile,
   upload,
   updateProfile,
+  googleCallback,
 };

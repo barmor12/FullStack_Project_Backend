@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_controller_1 = __importDefault(require("../controllers/auth_controller"));
 const router = express_1.default.Router();
+const passport_1 = __importDefault(require("passport"));
 /**
  * @swagger
  * tags:
@@ -202,5 +203,59 @@ router.get("/user", auth_controller_1.default.getProfile);
  *         description: Server error
  */
 router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google authentication
+ *     tags: [Auth]
+ *     description: Redirects to Google for authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to Google
+ */
+router.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   get:
+ *     summary: Google authentication callback
+ *     tags: [Auth]
+ *     description: Callback URL for Google authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to home page
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/google/callback", passport_1.default.authenticate("google", { failureRedirect: "/login" }), auth_controller_1.default.googleCallback);
+/**
+ * @swagger
+ * /auth/google/callback:
+ *   post:
+ *     summary: Handle Google authentication callback
+ *     tags: [Auth]
+ *     description: Handles the callback after Google authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The ID token from Google
+ *     responses:
+ *       200:
+ *         description: The access & refresh tokens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tokens'
+ *       500:
+ *         description: Failed to authenticate user
+ */
+router.post("/google/callback", auth_controller_1.default.googleCallback);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map
