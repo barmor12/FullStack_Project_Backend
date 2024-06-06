@@ -10,6 +10,7 @@ const router = express.Router();
 import post from "../controllers/post_controller";
 import authmiddleware from "../common/auth_middleware";
 import authController from "../controllers/auth_controller";
+
 /**
  * @swagger
  * components:
@@ -65,6 +66,32 @@ import authController from "../controllers/auth_controller";
  */
 
 router.get("/", authmiddleware, post.getAllPosts);
+
+/**
+ * @swagger
+ * /post/user:
+ *   get:
+ *     summary: Get posts by the authenticated user
+ *     tags: [Post]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
+ *       401:
+ *         description: Unauthorized
+ *       400:
+ *         description: Failed to get user posts
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/user", authmiddleware, post.getUserPosts);
 
 /**
  * @swagger

@@ -68,6 +68,31 @@ const auth_controller_1 = __importDefault(require("../controllers/auth_controlle
 router.get("/", auth_middleware_1.default, post_controller_1.default.getAllPosts);
 /**
  * @swagger
+ * /post/user:
+ *   get:
+ *     summary: Get posts by the authenticated user
+ *     tags: [Post]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Posts retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
+ *       401:
+ *         description: Unauthorized
+ *       400:
+ *         description: Failed to get user posts
+ *       500:
+ *         description: Internal server error
+ */
+router.get("/user", auth_middleware_1.default, post_controller_1.default.getUserPosts);
+/**
+ * @swagger
  * /post/{id}:
  *   get:
  *     summary: get post by id

@@ -32,6 +32,25 @@ const getAllPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         res.status(400).send({ error: "Failed to get posts" });
     }
 });
+const getUserPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = (0, auth_controller_1.getTokenFromRequest)(req);
+    if (!token) {
+        return (0, auth_controller_1.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, auth_controller_1.sendError)(res, "User not found", 404);
+        }
+        const posts = yield post_model_1.default.find({ sender: user._id }).populate("sender", "name email profilePic");
+        res.status(200).send(posts);
+    }
+    catch (err) {
+        console.error("Failed to get user posts:", err);
+        res.status(400).send({ error: "Failed to get user posts" });
+    }
+});
 const addNewPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const token = (0, auth_controller_1.getTokenFromRequest)(req);
     if (!token) {
@@ -118,5 +137,12 @@ const deletePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         res.status(500).json({ message: "Server error" });
     }
 });
-exports.default = { getAllPosts, addNewPost, getPostById, deletePost, updatePost };
+exports.default = {
+    getAllPosts,
+    addNewPost,
+    getPostById,
+    deletePost,
+    updatePost,
+    getUserPosts,
+};
 //# sourceMappingURL=post_controller.js.map

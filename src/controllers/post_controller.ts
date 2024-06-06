@@ -23,6 +23,33 @@ const getAllPosts = async (req: Request, res: Response) => {
   }
 };
 
+const getUserPosts = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const posts = await Post.find({ sender: user._id }).populate(
+      "sender",
+      "name email profilePic"
+    );
+    res.status(200).send(posts);
+  } catch (err) {
+    console.error("Failed to get user posts:", err);
+    res.status(400).send({ error: "Failed to get user posts" });
+  }
+};
+
 const addNewPost = async (req: Request, res: Response) => {
   const token = getTokenFromRequest(req);
   if (!token) {
@@ -131,4 +158,11 @@ const deletePost = async (req: Request, res: Response) => {
   }
 };
 
-export default { getAllPosts, addNewPost, getPostById, deletePost, updatePost };
+export default {
+  getAllPosts,
+  addNewPost,
+  getPostById,
+  deletePost,
+  updatePost,
+  getUserPosts,
+};
