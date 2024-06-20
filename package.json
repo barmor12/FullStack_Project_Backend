@@ -1,0 +1,43 @@
+{
+  "name": "sce_2024_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "testpost": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests/post.test.js",
+    "testauth": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests/auth.test.js",
+    "testall": "tsc && jest --detectOpenHandles --forceExit ./dist/src/tests",
+    "devstart": "nodemon ./src/app.ts",
+    "start": "tsc && node dist/src/app.js",
+    "lint": "eslint . --ext .ts"
+  },
+  "author": "Bar Mor",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.3.1",
+    "moongose": "^1.0.0",
+    "multer": "^1.4.5-lts.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/jest": "^29.5.12",
+    "@types/swagger-ui-express": "^4.1.6",
+    "eslint": "^9.0.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "supertest": "^6.3.4",
+    "ts-jest": "^29.1.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

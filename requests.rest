@@ -1,0 +1,35 @@
+###
+
+GET http://localhost:3000/post/661e46cb0b7a202b833bfae5
+
+###
+
+GET http://localhost:3000/post
+
+###
+
+POST http://localhost:3000/post
+Authorization : jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjQ1MTkxNmQ4ZjFlY2ZhYWQ5MGQ4YWMiLCJpYXQiOjE3MTU4MDU3NTcsImV4cCI6MTcxNTgwNjM1N30.6m_6YEuGc2RbS1nx1LNIyRPse_2LHQ4EMR8Wk_i0FOs
+Content-Type: application/json
+
+{
+    "message": "bar mor the king",
+    "sender": "Bar11"
+    
+}
+###
+
+GET http://localhost:3000/post/6621271d9e99154a66c557de
+Authorization: jwt eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NjIxMjY3NTllOTkxNTRhNjZjNTU3ZDUiLCJpYXQiOjE3MTM0NDg1NzIsImV4cCI6MTcxMzQ1MjE3Mn0.DWDBxvWcyCm-KXn8uyHhHNJJ3BpEVfnr97z7ulektE0
+###
+GET http://localhost:3000/post?sender=Bar11
+###
+
+
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email":"user6@gmail.com",
+    "password":"123456"
+}
