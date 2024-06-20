@@ -1,9 +1,7 @@
 import express from "express";
 import authController from "../controllers/auth_controller";
-import upload from "../controllers/auth_controller";
-import passport from "passport";
-
 const router = express.Router();
+import passport from "passport";
 
 /**
  * @swagger
@@ -67,21 +65,11 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               name:
- *                 type: string
- *               profilePic:
- *                 type: string
- *                 format: binary
+ *             $ref: '#/components/schemas/User'
  *     responses:
- *       201:
+ *       200:
  *         description: The new user
  *         content:
  *           application/json:
@@ -90,7 +78,7 @@ const router = express.Router();
  */
 router.post(
   "/register",
-  upload.upload.single("profilePic"),
+  authController.upload.single("profilePic"),
   authController.register
 );
 
@@ -170,7 +158,7 @@ router.post("/refresh", authController.refresh);
 
 /**
  * @swagger
- * /auth/profile:
+ * /auth/user:
  *   get:
  *     summary: Get the current logged-in user details
  *     tags: [Auth]
@@ -184,11 +172,11 @@ router.post("/refresh", authController.refresh);
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.get("/profile", authController.getProfile);
+router.get("/user", authController.getProfile);
 
 /**
  * @swagger
- * /auth/profile:
+ * /auth/user:
  *   put:
  *     summary: Update user profile
  *     tags: [Auth]
@@ -223,9 +211,25 @@ router.get("/profile", authController.getProfile);
  *         description: Server error
  */
 router.put(
-  "/profile",
-  upload.upload.single("profilePic"),
+  "/user",
+  authController.upload.single("profilePic"),
   authController.updateProfile
+);
+
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google authentication
+ *     tags: [Auth]
+ *     description: Redirects to Google for authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to Google
+ */
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 /**

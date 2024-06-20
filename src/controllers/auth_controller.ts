@@ -10,7 +10,7 @@ import path from "path";
 interface TokenPayload extends JwtPayload {
   _id: string;
 }
-/////
+///
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export function getTokenFromRequest(req: Request): string | null {

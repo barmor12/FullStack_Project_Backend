@@ -5,9 +5,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_controller_1 = __importDefault(require("../controllers/auth_controller"));
-const auth_controller_2 = __importDefault(require("../controllers/auth_controller"));
-const passport_1 = __importDefault(require("passport"));
 const router = express_1.default.Router();
+const passport_1 = __importDefault(require("passport"));
 /**
  * @swagger
  * tags:
@@ -67,28 +66,18 @@ const router = express_1.default.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         multipart/form-data:
+ *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               email:
- *                 type: string
- *               password:
- *                 type: string
- *               name:
- *                 type: string
- *               profilePic:
- *                 type: string
- *                 format: binary
+ *             $ref: '#/components/schemas/User'
  *     responses:
- *       201:
+ *       200:
  *         description: The new user
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.post("/register", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.register);
+router.post("/register", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.register);
 /**
  * @swagger
  * /auth/login:
@@ -162,7 +151,7 @@ router.post("/logout", auth_controller_1.default.logout);
 router.post("/refresh", auth_controller_1.default.refresh);
 /**
  * @swagger
- * /auth/profile:
+ * /auth/user:
  *   get:
  *     summary: Get the current logged-in user details
  *     tags: [Auth]
@@ -176,10 +165,10 @@ router.post("/refresh", auth_controller_1.default.refresh);
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.get("/profile", auth_controller_1.default.getProfile);
+router.get("/user", auth_controller_1.default.getProfile);
 /**
  * @swagger
- * /auth/profile:
+ * /auth/user:
  *   put:
  *     summary: Update user profile
  *     tags: [Auth]
@@ -213,7 +202,19 @@ router.get("/profile", auth_controller_1.default.getProfile);
  *       500:
  *         description: Server error
  */
-router.put("/profile", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+/**
+ * @swagger
+ * /auth/google:
+ *   get:
+ *     summary: Initiate Google authentication
+ *     tags: [Auth]
+ *     description: Redirects to Google for authentication
+ *     responses:
+ *       302:
+ *         description: Redirect to Google
+ */
+router.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
 /**
  * @swagger
  * /auth/google/callback:
