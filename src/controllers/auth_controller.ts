@@ -10,7 +10,7 @@ import path from "path";
 interface TokenPayload extends JwtPayload {
   _id: string;
 }
-///
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export function getTokenFromRequest(req: Request): string | null {
@@ -93,7 +93,7 @@ const login = async (req: Request, res: Response) => {
 };
 
 const register = async (req: Request, res: Response) => {
-  const { email, password, name } = req.body;
+  const { email, password, nickname } = req.body;
   let profilePic = "";
 
   if (req.file) {
@@ -115,7 +115,7 @@ const register = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       profilePic,
-      name,
+      nickname,
     });
 
     const newUser = await user.save();
@@ -226,7 +226,7 @@ const updateProfile = async (req: Request, res: Response) => {
       return sendError(res, "User not found", 404);
     }
 
-    const { name, email, oldPassword, newPassword } = req.body;
+    const { nickname, email, oldPassword, newPassword } = req.body;
     if (oldPassword && newPassword) {
       const isMatch = await bcrypt.compare(oldPassword, user.password);
       if (!isMatch) {
@@ -235,7 +235,7 @@ const updateProfile = async (req: Request, res: Response) => {
       user.password = await bcrypt.hash(newPassword, 10);
     }
 
-    user.name = name || user.name;
+    user.nickname = nickname || user.nickname;
     user.email = email || user.email;
 
     if (req.file) {
@@ -247,6 +247,73 @@ const updateProfile = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Update profile error:", err);
     sendError(res, "Failed to update profile", 500);
+  }
+};
+
+const updateNickname = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const { nickname } = req.body;
+    if (!nickname) {
+      return sendError(res, "Nickname is required", 400);
+    }
+
+    user.nickname = nickname;
+    const updatedUser = await user.save();
+
+    res.status(200).send(updatedUser);
+  } catch (err) {
+    console.error("Update nickname error:", err);
+    sendError(res, "Failed to update nickname", 500);
+  }
+};
+
+const updatePassword = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return sendError(res, "Old and new passwords are required", 400);
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return sendError(res, "Old password is incorrect", 400);
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    const updatedUser = await user.save();
+
+    res.status(200).send(updatedUser);
+  } catch (err) {
+    console.error("Update password error:", err);
+    sendError(res, "Failed to update password", 500);
   }
 };
 
@@ -265,7 +332,7 @@ const googleCallback = async (req: Request, res: Response) => {
       user = new User({
         googleId: payload?.sub,
         email: payload?.email,
-        name: payload?.name,
+        nickname: payload?.name,
         profilePic: payload?.picture,
       });
       await user.save();
@@ -288,5 +355,7 @@ export default {
   getProfile,
   upload,
   updateProfile,
+  updateNickname,
+  updatePassword,
   googleCallback,
 };

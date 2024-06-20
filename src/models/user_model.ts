@@ -11,14 +11,14 @@ const userSchema = new mongoose.Schema({
   },
   profilePic: {
     type: String,
-    required: false, // לא חובה, יכול להיות ריק
+    required: false,
   },
   refresh_tokens: {
     type: [String],
   },
-  name: {
+  nickname: {
     type: String,
-    required: false, // לא חובה, יכול להיות ריק
+    required: false,
   },
 });
 

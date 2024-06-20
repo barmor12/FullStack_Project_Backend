@@ -38,9 +38,17 @@ const passport_1 = __importDefault(require("passport"));
  *         password:
  *           type: string
  *           description: The user password
+ *         nickname:
+ *           type: string
+ *           description: The user nickname
+ *         profilePic:
+ *           type: string
+ *           description: The user's profile picture URL
  *       example:
  *         email: 'bob@gmail.com'
  *         password: '123456'
+ *         nickname: 'bob'
+ *         profilePic: '/uploads/profile.jpg'
  *     Tokens:
  *       type: object
  *       required:
@@ -66,9 +74,19 @@ const passport_1 = __importDefault(require("passport"));
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/User'
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               nickname:
+ *                 type: string
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: The new user
@@ -181,7 +199,7 @@ router.get("/user", auth_controller_1.default.getProfile);
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               nickname:
  *                 type: string
  *               email:
  *                 type: string
@@ -203,6 +221,64 @@ router.get("/user", auth_controller_1.default.getProfile);
  *         description: Server error
  */
 router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+/**
+ * @swagger
+ * /auth/nickname:
+ *   put:
+ *     summary: Update user nickname
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nickname:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User nickname updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.put("/nickname", auth_controller_1.default.updateNickname);
+/**
+ * @swagger
+ * /auth/password:
+ *   put:
+ *     summary: Update user password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User password updated successfully
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.put("/password", auth_controller_1.default.updatePassword);
 /**
  * @swagger
  * /auth/google:

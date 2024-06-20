@@ -76,7 +76,7 @@ const addNewPost = async (req: Request, res: Response) => {
     const post = new Post({
       message,
       sender: user._id,
-      senderName: user.name || "Unknown",
+      senderName: user.nickname || "Unknown",
       image,
     });
 

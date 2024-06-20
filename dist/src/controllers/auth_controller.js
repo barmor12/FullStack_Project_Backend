@@ -20,7 +20,6 @@ const user_model_1 = __importDefault(require("../models/user_model"));
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-///
 const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 function getTokenFromRequest(req) {
     const authHeader = req.headers["authorization"];
@@ -80,7 +79,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password, name } = req.body;
+    const { email, password, nickname } = req.body;
     let profilePic = "";
     if (req.file) {
         profilePic = `/uploads/${req.file.filename}`;
@@ -98,7 +97,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             email,
             password: hashedPassword,
             profilePic,
-            name,
+            nickname,
         });
         const newUser = yield user.save();
         const tokens = yield generateTokens(newUser._id.toString());
@@ -180,7 +179,7 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!user) {
             return (0, exports.sendError)(res, "User not found", 404);
         }
-        const { name, email, oldPassword, newPassword } = req.body;
+        const { nickname, email, oldPassword, newPassword } = req.body;
         if (oldPassword && newPassword) {
             const isMatch = yield bcrypt_1.default.compare(oldPassword, user.password);
             if (!isMatch) {
@@ -188,7 +187,7 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             user.password = yield bcrypt_1.default.hash(newPassword, 10);
         }
-        user.name = name || user.name;
+        user.nickname = nickname || user.nickname;
         user.email = email || user.email;
         if (req.file) {
             user.profilePic = `/uploads/${req.file.filename}`;
@@ -199,6 +198,58 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     catch (err) {
         console.error("Update profile error:", err);
         (0, exports.sendError)(res, "Failed to update profile", 500);
+    }
+});
+const updateNickname = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = getTokenFromRequest(req);
+    if (!token) {
+        return (0, exports.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, exports.sendError)(res, "User not found", 404);
+        }
+        const { nickname } = req.body;
+        if (!nickname) {
+            return (0, exports.sendError)(res, "Nickname is required", 400);
+        }
+        user.nickname = nickname;
+        const updatedUser = yield user.save();
+        res.status(200).send(updatedUser);
+    }
+    catch (err) {
+        console.error("Update nickname error:", err);
+        (0, exports.sendError)(res, "Failed to update nickname", 500);
+    }
+});
+const updatePassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = getTokenFromRequest(req);
+    if (!token) {
+        return (0, exports.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, exports.sendError)(res, "User not found", 404);
+        }
+        const { oldPassword, newPassword } = req.body;
+        if (!oldPassword || !newPassword) {
+            return (0, exports.sendError)(res, "Old and new passwords are required", 400);
+        }
+        const isMatch = yield bcrypt_1.default.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return (0, exports.sendError)(res, "Old password is incorrect", 400);
+        }
+        user.password = yield bcrypt_1.default.hash(newPassword, 10);
+        const updatedUser = yield user.save();
+        res.status(200).send(updatedUser);
+    }
+    catch (err) {
+        console.error("Update password error:", err);
+        (0, exports.sendError)(res, "Failed to update password", 500);
     }
 });
 const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -214,7 +265,7 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
             user = new user_model_1.default({
                 googleId: payload === null || payload === void 0 ? void 0 : payload.sub,
                 email: payload === null || payload === void 0 ? void 0 : payload.email,
-                name: payload === null || payload === void 0 ? void 0 : payload.name,
+                nickname: payload === null || payload === void 0 ? void 0 : payload.name,
                 profilePic: payload === null || payload === void 0 ? void 0 : payload.picture,
             });
             yield user.save();
@@ -236,6 +287,8 @@ exports.default = {
     getProfile,
     upload,
     updateProfile,
+    updateNickname,
+    updatePassword,
     googleCallback,
 };
 //# sourceMappingURL=auth_controller.js.map

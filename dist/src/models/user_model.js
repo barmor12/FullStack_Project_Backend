@@ -15,14 +15,14 @@ const userSchema = new mongoose_1.default.Schema({
     },
     profilePic: {
         type: String,
-        required: false, // לא חובה, יכול להיות ריק
+        required: false,
     },
     refresh_tokens: {
         type: [String],
     },
-    name: {
+    nickname: {
         type: String,
-        required: false, // לא חובה, יכול להיות ריק
+        required: false,
     },
 });
 exports.default = mongoose_1.default.model("User", userSchema);

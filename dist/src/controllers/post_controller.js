@@ -70,7 +70,7 @@ const addNewPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const post = new post_model_1.default({
             message,
             sender: user._id,
-            senderName: user.name || "Unknown",
+            senderName: user.nickname || "Unknown",
             image,
         });
         const newPost = yield post.save();
