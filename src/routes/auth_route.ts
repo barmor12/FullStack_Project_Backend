@@ -1,7 +1,9 @@
 import express from "express";
 import authController from "../controllers/auth_controller";
-const router = express.Router();
+import upload from "../controllers/auth_controller";
 import passport from "passport";
+
+const router = express.Router();
 
 /**
  * @swagger
@@ -78,7 +80,7 @@ import passport from "passport";
  */
 router.post(
   "/register",
-  authController.upload.single("profilePic"),
+  upload.upload.single("profilePic"),
   authController.register
 );
 
@@ -212,24 +214,8 @@ router.get("/user", authController.getProfile);
  */
 router.put(
   "/user",
-  authController.upload.single("profilePic"),
+  upload.upload.single("profilePic"),
   authController.updateProfile
-);
-
-/**
- * @swagger
- * /auth/google:
- *   get:
- *     summary: Initiate Google authentication
- *     tags: [Auth]
- *     description: Redirects to Google for authentication
- *     responses:
- *       302:
- *         description: Redirect to Google
- */
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 /**

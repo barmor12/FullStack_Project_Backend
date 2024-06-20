@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const supertest_1 = __importDefault(require("supertest"));
 const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
-const user_model_1 = __importDefault(require("../models/user_model"));
+const path_1 = __importDefault(require("path"));
 const userEmail = "user2@gmail.com";
 const userPassword = "12345";
 let accessToken = "";
@@ -23,8 +23,8 @@ let refreshToken = "";
 let server;
 beforeAll(() => __awaiter(void 0, void 0, void 0, function* () {
     server = server_1.default.listen(3000);
-    yield mongoose_1.default.model('User').deleteMany({});
-    yield mongoose_1.default.model('Post').deleteMany({});
+    yield mongoose_1.default.model("User").deleteMany({});
+    yield mongoose_1.default.model("Post").deleteMany({});
 }));
 afterAll(() => __awaiter(void 0, void 0, void 0, function* () {
     yield mongoose_1.default.connection.close();
@@ -33,149 +33,174 @@ afterAll(() => __awaiter(void 0, void 0, void 0, function* () {
 describe("Auth Tests", () => {
     describe("Register Tests", () => {
         test("Register with valid credentials", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/register')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/register").send({
                 email: userEmail,
-                password: userPassword
+                password: userPassword,
+                name: "User Two",
             });
             expect(response.statusCode).toEqual(201);
         }), 10000);
         test("Register with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/register')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/register").send({
                 email: "",
-                password: userPassword
+                password: userPassword,
+                name: "User Two",
             });
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with empty password", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/register')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/register").send({
                 email: userEmail,
-                password: ""
+                password: "",
+                name: "User Two",
             });
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with empty email and password", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/register')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/register").send({
                 email: "",
-                password: ""
+                password: "",
+                name: "User Two",
             });
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with existing email", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/register')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/register").send({
                 email: userEmail,
-                password: userPassword
+                password: userPassword,
+                name: "User Two",
             });
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
+        test("Register with profile picture upload", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .post("/auth/register")
+                .field("email", "user3@gmail.com")
+                .field("password", userPassword)
+                .field("name", "User Three")
+                .attach("profilePic", path_1.default.resolve(__dirname, "test_image.jpg"));
+            expect(response.statusCode).toEqual(201);
+        }), 20000);
     });
     describe("Login Tests", () => {
         test("Login Test", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: userEmail,
-                password: userPassword
+                password: userPassword,
             });
             expect(response.statusCode).toEqual(200);
             accessToken = response.body.accessToken;
             expect(accessToken).not.toBeNull();
             refreshToken = response.body.refreshToken;
             expect(refreshToken).not.toBeNull();
-            const user1 = yield user_model_1.default.findOne({ email: userEmail });
-            expect(user1.refresh_tokens).toContain(refreshToken);
+            const user = yield mongoose_1.default.model("User").findOne({ email: userEmail });
+            expect(user.refresh_tokens).toContain(refreshToken);
         }));
         test("Login with wrong password", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: userEmail,
-                password: "wrongpassword"
+                password: "wrongpassword",
             });
             expect(response.statusCode).not.toEqual(200);
             const access = response.body.accessToken;
             expect(access).toBeUndefined();
         }), 10000);
         test("Login with wrong email", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: "wrongemail@example.com",
-                password: userPassword
+                password: userPassword,
             });
             expect(response.statusCode).not.toEqual(200);
             const access = response.body.accessToken;
             expect(access).toBeUndefined();
         }), 10000);
         test("Login with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: "",
-                password: userPassword
+                password: userPassword,
             });
             expect(response.statusCode).not.toEqual(200);
         }), 10000);
         test("Login with empty password", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: userEmail,
-                password: ""
+                password: "",
             });
             expect(response.statusCode).not.toEqual(200);
         }), 10000);
         test("Login with not registered email", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default)
-                .post('/auth/login')
-                .send({
+            const response = yield (0, supertest_1.default)(server_1.default).post("/auth/login").send({
                 email: "nonexistent@example.com",
-                password: userPassword
+                password: userPassword,
             });
             expect(response.statusCode).not.toEqual(200);
         }), 20000);
     });
     describe("Token Access Tests", () => {
         test("Unauthorized access without token", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default).get('/post');
+            const response = yield (0, supertest_1.default)(server_1.default).get("/post");
             expect(response.statusCode).not.toEqual(200);
         }));
         test("Test Using valid Access Token:", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default).get("/post")
-                .set('Authorization', 'Bearer ' + accessToken);
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .get("/post")
+                .set("Authorization", "Bearer " + accessToken);
             expect(response.statusCode).toEqual(200);
         }));
-        test("Test Using Worng Access Token:", () => __awaiter(void 0, void 0, void 0, function* () {
-            const response = yield (0, supertest_1.default)(server_1.default).get("/post")
-                .set('Authorization', 'Bearer 1' + accessToken);
+        test("Test Using Wrong Access Token:", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .get("/post")
+                .set("Authorization", "Bearer 1" + accessToken);
             expect(response.statusCode).not.toEqual(200);
         }));
         jest.setTimeout(30000);
-        test("test expired token", () => __awaiter(void 0, void 0, void 0, function* () {
-            yield new Promise(r => setTimeout(r, 10000));
-            const response = yield (0, supertest_1.default)(server_1.default).get("/post")
-                .set('Authorization', 'Bearer ' + accessToken);
+        test("Test expired token", () => __awaiter(void 0, void 0, void 0, function* () {
+            yield new Promise((r) => setTimeout(r, 10000));
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .get("/post")
+                .set("Authorization", "Bearer " + accessToken);
             expect(response.statusCode).not.toEqual(200);
         }));
-        test("refresh token test", () => __awaiter(void 0, void 0, void 0, function* () {
-            let response = yield (0, supertest_1.default)(server_1.default).get("/auth/refresh").set('Authorization', 'Bearer ' + refreshToken);
+        test("Refresh token test", () => __awaiter(void 0, void 0, void 0, function* () {
+            let response = yield (0, supertest_1.default)(server_1.default)
+                .post("/auth/refresh")
+                .send({ refreshToken });
             expect(response.statusCode).toEqual(200);
-            const newaccessToken = response.body.accessToken;
-            expect(newaccessToken).not.toBeNull();
-            const newrefreshToken = response.body.refreshToken;
-            expect(newrefreshToken).not.toBeNull();
-            response = yield (0, supertest_1.default)(server_1.default).get("/post")
-                .set('Authorization', 'Bearer ' + newaccessToken);
+            const newAccessToken = response.body.accessToken;
+            expect(newAccessToken).not.toBeNull();
+            const newRefreshToken = response.body.refreshToken;
+            expect(newRefreshToken).not.toBeNull();
+            response = yield (0, supertest_1.default)(server_1.default)
+                .get("/post")
+                .set("Authorization", "Bearer " + newAccessToken);
             expect(response.statusCode).toEqual(200);
+        }));
+    });
+    describe("Profile Tests", () => {
+        test("Get profile", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .get("/auth/profile")
+                .set("Authorization", "Bearer " + accessToken);
+            expect(response.statusCode).toEqual(200);
+            expect(response.body.email).toEqual(userEmail);
+        }));
+        test("Update profile", () => __awaiter(void 0, void 0, void 0, function* () {
+            const response = yield (0, supertest_1.default)(server_1.default)
+                .put("/auth/profile")
+                .set("Authorization", "Bearer " + accessToken)
+                .send({
+                name: "Updated Name",
+            });
+            expect(response.statusCode).toEqual(200);
+            expect(response.body.name).toEqual("Updated Name");
+        }));
+    });
+    describe("Google Auth Callback Test", () => {
+        test("Google Auth Callback", () => __awaiter(void 0, void 0, void 0, function* () {
+            // This requires a valid Google OAuth token
+            // You might want to mock the Google OAuth2Client for testing purposes
+            // This is a placeholder test
+            expect(true).toBe(true);
         }));
     });
     describe("Logout Tests", () => {
@@ -185,8 +210,8 @@ describe("Auth Tests", () => {
                 return;
             }
             const response = yield (0, supertest_1.default)(server_1.default)
-                .get('/auth/logout')
-                .set('Authorization', 'Bearer ' + refreshToken).send();
+                .post("/auth/logout")
+                .send({ refreshToken });
             expect(response.statusCode).toEqual(200);
         }));
     });

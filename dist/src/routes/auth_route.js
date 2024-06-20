@@ -5,8 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const auth_controller_1 = __importDefault(require("../controllers/auth_controller"));
-const router = express_1.default.Router();
+const auth_controller_2 = __importDefault(require("../controllers/auth_controller"));
 const passport_1 = __importDefault(require("passport"));
+const router = express_1.default.Router();
 /**
  * @swagger
  * tags:
@@ -77,7 +78,7 @@ const passport_1 = __importDefault(require("passport"));
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.post("/register", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.register);
+router.post("/register", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.register);
 /**
  * @swagger
  * /auth/login:
@@ -202,19 +203,7 @@ router.get("/user", auth_controller_1.default.getProfile);
  *       500:
  *         description: Server error
  */
-router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
-/**
- * @swagger
- * /auth/google:
- *   get:
- *     summary: Initiate Google authentication
- *     tags: [Auth]
- *     description: Redirects to Google for authentication
- *     responses:
- *       302:
- *         description: Redirect to Google
- */
-router.get("/google", passport_1.default.authenticate("google", { scope: ["profile", "email"] }));
+router.put("/user", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
 /**
  * @swagger
  * /auth/google/callback:
