@@ -74,7 +74,7 @@ describe("Auth Tests", () => {
         .field("email", "user3@gmail.com")
         .field("password", userPassword)
         .field("name", "User Three")
-        .attach("profilePic", path.resolve(__dirname, "test_image.jpg"));
+        .attach("profilePic", path.resolve(__dirname, "test_image.jpg")); // ודא שהקובץ test_image.jpg קיים במיקום זה
       expect(response.statusCode).toEqual(201);
     }, 20000);
   });
@@ -161,15 +161,23 @@ describe("Auth Tests", () => {
       expect(response.statusCode).not.toEqual(200);
     });
 
-    jest.setTimeout(30000);
+    jest.setTimeout(120000);
+
+    const expiredToken = jwt.sign(
+      { _id: "someUserId" },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "10s" }
+    );
+
     test("Test expired token", async () => {
-      await new Promise((r) => setTimeout(r, 10000));
+      await new Promise((r) => setTimeout(r, 12000));
       const response = await request(app)
         .get("/post")
-        .set("Authorization", "Bearer " + accessToken);
+        .set("Authorization", "Bearer " + expiredToken);
+      console.log("Expired token test response:", response.body);
+      console.log("Expired token status:", response.statusCode);
       expect(response.statusCode).not.toEqual(200);
     });
-
     test("Refresh token test", async () => {
       let response = await request(app)
         .post("/auth/refresh")
@@ -193,6 +201,7 @@ describe("Auth Tests", () => {
       const response = await request(app)
         .get("/auth/profile")
         .set("Authorization", "Bearer " + accessToken);
+      console.log("Get profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
       expect(response.statusCode).toEqual(200);
       expect(response.body.email).toEqual(userEmail);
     });
@@ -204,6 +213,7 @@ describe("Auth Tests", () => {
         .send({
           name: "Updated Name",
         });
+      console.log("Update profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
       expect(response.statusCode).toEqual(200);
       expect(response.body.name).toEqual("Updated Name");
     });

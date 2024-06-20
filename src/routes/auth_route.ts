@@ -67,11 +67,21 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/User'
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
  *     responses:
- *       200:
+ *       201:
  *         description: The new user
  *         content:
  *           application/json:
@@ -160,7 +170,7 @@ router.post("/refresh", authController.refresh);
 
 /**
  * @swagger
- * /auth/user:
+ * /auth/profile:
  *   get:
  *     summary: Get the current logged-in user details
  *     tags: [Auth]
@@ -174,11 +184,11 @@ router.post("/refresh", authController.refresh);
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.get("/user", authController.getProfile);
+router.get("/profile", authController.getProfile);
 
 /**
  * @swagger
- * /auth/user:
+ * /auth/profile:
  *   put:
  *     summary: Update user profile
  *     tags: [Auth]
@@ -213,7 +223,7 @@ router.get("/user", authController.getProfile);
  *         description: Server error
  */
 router.put(
-  "/user",
+  "/profile",
   upload.upload.single("profilePic"),
   authController.updateProfile
 );

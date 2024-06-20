@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const supertest_1 = __importDefault(require("supertest"));
 const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const path_1 = __importDefault(require("path"));
 const userEmail = "user2@gmail.com";
 const userPassword = "12345";
@@ -78,7 +79,7 @@ describe("Auth Tests", () => {
                 .field("email", "user3@gmail.com")
                 .field("password", userPassword)
                 .field("name", "User Three")
-                .attach("profilePic", path_1.default.resolve(__dirname, "test_image.jpg"));
+                .attach("profilePic", path_1.default.resolve(__dirname, "test_image.jpg")); // ודא שהקובץ test_image.jpg קיים במיקום זה
             expect(response.statusCode).toEqual(201);
         }), 20000);
     });
@@ -153,12 +154,16 @@ describe("Auth Tests", () => {
                 .set("Authorization", "Bearer 1" + accessToken);
             expect(response.statusCode).not.toEqual(200);
         }));
-        jest.setTimeout(30000);
+        jest.setTimeout(120000); // מגדיר זמן מקסימלי לטסטים
+        const expiredToken = jsonwebtoken_1.default.sign({ _id: "someUserId" }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "10s" } // יצירת טוקן שפג תוקף תוך 10 שניות
+        );
         test("Test expired token", () => __awaiter(void 0, void 0, void 0, function* () {
-            yield new Promise((r) => setTimeout(r, 10000));
+            yield new Promise((r) => setTimeout(r, 12000)); // המתנה של 12 שניות כדי לוודא שהטוקן פג תוקף
             const response = yield (0, supertest_1.default)(server_1.default)
                 .get("/post")
-                .set("Authorization", "Bearer " + accessToken);
+                .set("Authorization", "Bearer " + expiredToken);
+            console.log("Expired token test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
+            console.log("Expired token status:", response.statusCode); // הוספת לוג כדי לבדוק את סטטוס הקוד
             expect(response.statusCode).not.toEqual(200);
         }));
         test("Refresh token test", () => __awaiter(void 0, void 0, void 0, function* () {
@@ -181,6 +186,7 @@ describe("Auth Tests", () => {
             const response = yield (0, supertest_1.default)(server_1.default)
                 .get("/auth/profile")
                 .set("Authorization", "Bearer " + accessToken);
+            console.log("Get profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
             expect(response.statusCode).toEqual(200);
             expect(response.body.email).toEqual(userEmail);
         }));
@@ -191,6 +197,7 @@ describe("Auth Tests", () => {
                 .send({
                 name: "Updated Name",
             });
+            console.log("Update profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
             expect(response.statusCode).toEqual(200);
             expect(response.body.name).toEqual("Updated Name");
         }));

@@ -67,11 +67,21 @@ const router = express_1.default.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/User'
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               name:
+ *                 type: string
+ *               profilePic:
+ *                 type: string
+ *                 format: binary
  *     responses:
- *       200:
+ *       201:
  *         description: The new user
  *         content:
  *           application/json:
@@ -152,7 +162,7 @@ router.post("/logout", auth_controller_1.default.logout);
 router.post("/refresh", auth_controller_1.default.refresh);
 /**
  * @swagger
- * /auth/user:
+ * /auth/profile:
  *   get:
  *     summary: Get the current logged-in user details
  *     tags: [Auth]
@@ -166,10 +176,10 @@ router.post("/refresh", auth_controller_1.default.refresh);
  *             schema:
  *               $ref: '#/components/schemas/User'
  */
-router.get("/user", auth_controller_1.default.getProfile);
+router.get("/profile", auth_controller_1.default.getProfile);
 /**
  * @swagger
- * /auth/user:
+ * /auth/profile:
  *   put:
  *     summary: Update user profile
  *     tags: [Auth]
@@ -203,7 +213,7 @@ router.get("/user", auth_controller_1.default.getProfile);
  *       500:
  *         description: Server error
  */
-router.put("/user", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+router.put("/profile", auth_controller_2.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
 /**
  * @swagger
  * /auth/google/callback:
