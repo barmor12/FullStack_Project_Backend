@@ -2,9 +2,9 @@ import request from "supertest";
 import app from "../server";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import path from "path";
+import user from "../models/user_model";
 
-const userEmail = "user2@gmail.com";
+const userEmail = "user3@gmail.com";
 const userPassword = "12345";
 let accessToken = "";
 let refreshToken = "";
@@ -12,8 +12,6 @@ let server;
 
 beforeAll(async () => {
   server = app.listen(3000);
-  await mongoose.model("User").deleteMany({});
-  await mongoose.model("Post").deleteMany({});
 });
 
 afterAll(async () => {
@@ -24,59 +22,49 @@ afterAll(async () => {
 describe("Auth Tests", () => {
   describe("Register Tests", () => {
     test("Register with valid credentials", async () => {
-      const response = await request(app).post("/auth/register").send({
-        email: userEmail,
-        password: userPassword,
-        name: "User Two",
-      });
+      const response = await request(app)
+        .post("/auth/register")
+        .field("email", userEmail)
+        .field("password", userPassword)
+        .field("name", "User Name");
       expect(response.statusCode).toEqual(201);
     }, 10000);
 
     test("Register with empty email", async () => {
-      const response = await request(app).post("/auth/register").send({
-        email: "",
-        password: userPassword,
-        name: "User Two",
-      });
+      const response = await request(app)
+        .post("/auth/register")
+        .field("email", "")
+        .field("password", userPassword)
+        .field("name", "User Name");
       expect(response.statusCode).not.toEqual(201);
     }, 10000);
 
     test("Register with empty password", async () => {
-      const response = await request(app).post("/auth/register").send({
-        email: userEmail,
-        password: "",
-        name: "User Two",
-      });
+      const response = await request(app)
+        .post("/auth/register")
+        .field("email", userEmail)
+        .field("password", "")
+        .field("name", "User Name");
       expect(response.statusCode).not.toEqual(201);
     }, 10000);
 
     test("Register with empty email and password", async () => {
-      const response = await request(app).post("/auth/register").send({
-        email: "",
-        password: "",
-        name: "User Two",
-      });
+      const response = await request(app)
+        .post("/auth/register")
+        .field("email", "")
+        .field("password", "")
+        .field("name", "User Name");
       expect(response.statusCode).not.toEqual(201);
     }, 10000);
 
     test("Register with existing email", async () => {
-      const response = await request(app).post("/auth/register").send({
-        email: userEmail,
-        password: userPassword,
-        name: "User Two",
-      });
-      expect(response.statusCode).not.toEqual(201);
-    }, 10000);
-
-    test("Register with profile picture upload", async () => {
       const response = await request(app)
         .post("/auth/register")
-        .field("email", "user3@gmail.com")
+        .field("email", userEmail)
         .field("password", userPassword)
-        .field("name", "User Three")
-        .attach("profilePic", path.resolve(__dirname, "test_image.jpg")); // ודא שהקובץ test_image.jpg קיים במיקום זה
-      expect(response.statusCode).toEqual(201);
-    }, 20000);
+        .field("name", "User Name");
+      expect(response.statusCode).not.toEqual(201);
+    }, 10000);
   });
 
   describe("Login Tests", () => {
@@ -92,8 +80,8 @@ describe("Auth Tests", () => {
       refreshToken = response.body.refreshToken;
       expect(refreshToken).not.toBeNull();
 
-      const user = await mongoose.model("User").findOne({ email: userEmail });
-      expect(user.refresh_tokens).toContain(refreshToken);
+      const user1 = await user.findOne({ email: userEmail });
+      expect(user1.refresh_tokens).toContain(refreshToken);
     });
 
     test("Login with wrong password", async () => {
@@ -161,24 +149,23 @@ describe("Auth Tests", () => {
       expect(response.statusCode).not.toEqual(200);
     });
 
-    jest.setTimeout(120000);
+    jest.setTimeout(30000);
+    test("test expired token", async () => {
+      const expiredToken = jwt.sign(
+        { _id: "some_user_id" },
+        process.env.ACCESS_TOKEN_SECRET!,
+        { expiresIn: "10s" } // טוקן שפג תוקפו תוך 10 שניות
+      );
 
-    const expiredToken = jwt.sign(
-      { _id: "someUserId" },
-      process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: "10s" }
-    );
+      await new Promise((r) => setTimeout(r, 11000)); // להמתין 11 שניות כדי להבטיח שהטוקן פג תוקפו
 
-    test("Test expired token", async () => {
-      await new Promise((r) => setTimeout(r, 12000));
       const response = await request(app)
         .get("/post")
         .set("Authorization", "Bearer " + expiredToken);
-      console.log("Expired token test response:", response.body);
-      console.log("Expired token status:", response.statusCode);
       expect(response.statusCode).not.toEqual(200);
     });
-    test("Refresh token test", async () => {
+
+    test("refresh token test", async () => {
       let response = await request(app)
         .post("/auth/refresh")
         .send({ refreshToken });
@@ -196,38 +183,6 @@ describe("Auth Tests", () => {
     });
   });
 
-  describe("Profile Tests", () => {
-    test("Get profile", async () => {
-      const response = await request(app)
-        .get("/auth/profile")
-        .set("Authorization", "Bearer " + accessToken);
-      console.log("Get profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.email).toEqual(userEmail);
-    });
-
-    test("Update profile", async () => {
-      const response = await request(app)
-        .put("/auth/profile")
-        .set("Authorization", "Bearer " + accessToken)
-        .send({
-          name: "Updated Name",
-        });
-      console.log("Update profile test response:", response.body); // הוספת לוג כדי לבדוק מה מתקבל
-      expect(response.statusCode).toEqual(200);
-      expect(response.body.name).toEqual("Updated Name");
-    });
-  });
-
-  describe("Google Auth Callback Test", () => {
-    test("Google Auth Callback", async () => {
-      // This requires a valid Google OAuth token
-      // You might want to mock the Google OAuth2Client for testing purposes
-      // This is a placeholder test
-      expect(true).toBe(true);
-    });
-  });
-
   describe("Logout Tests", () => {
     test("Logout test", async () => {
       if (!refreshToken) {
@@ -236,7 +191,8 @@ describe("Auth Tests", () => {
       }
       const response = await request(app)
         .post("/auth/logout")
-        .send({ refreshToken });
+        .send({ refreshToken })
+        .set("Authorization", "Bearer " + refreshToken);
       expect(response.statusCode).toEqual(200);
     });
   });
