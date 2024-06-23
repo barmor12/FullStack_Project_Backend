@@ -316,7 +316,6 @@ const updatePassword = async (req: Request, res: Response) => {
     sendError(res, "Failed to update password", 500);
   }
 };
-
 const googleCallback = async (req: Request, res: Response) => {
   const { token } = req.body;
   try {
@@ -345,6 +344,52 @@ const googleCallback = async (req: Request, res: Response) => {
   }
 };
 
+const checkUsername = async (req: Request, res: Response) => {
+  const { username } = req.body;
+  if (!username) {
+    return res.status(400).json({ error: "Username is required" });
+  }
+
+  try {
+    const user = await User.findOne({ name: username });
+    if (user) {
+      return res.status(200).json({ available: false });
+    }
+    return res.status(200).json({ available: true });
+  } catch (err) {
+    console.error("Error checking username availability:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+};
+
+const validatePassword = async (req: Request, res: Response) => {
+  const { password } = req.body;
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (isMatch) {
+      return res.status(200).json({ valid: true });
+    }
+    res.status(200).json({ valid: false });
+  } catch (error) {
+    console.error("Validate password error:", error);
+    sendError(res, "Failed to validate password", 500);
+  }
+};
+
 export default {
   login,
   register,
@@ -358,4 +403,6 @@ export default {
   updateNickname,
   updatePassword,
   googleCallback,
+  checkUsername,
+  validatePassword,
 };

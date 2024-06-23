@@ -281,6 +281,70 @@ router.put("/nickname", auth_controller_1.default.updateNickname);
 router.put("/password", auth_controller_1.default.updatePassword);
 /**
  * @swagger
+ * /auth/check-username:
+ *   post:
+ *     summary: Check if a username is available
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Username availability status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *                   description: Availability status of the username
+ *       500:
+ *         description: Server error
+ */
+router.post("/check-username", auth_controller_1.default.checkUsername);
+/**
+ * @swagger
+ * /auth/validate-password:
+ *   post:
+ *     summary: Validate the current password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password validation status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 valid:
+ *                   type: boolean
+ *                   description: Validation status of the password
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
+router.post("/validate-password", auth_controller_1.default.validatePassword);
+/**
+ * @swagger
  * /auth/google:
  *   get:
  *     summary: Initiate Google authentication

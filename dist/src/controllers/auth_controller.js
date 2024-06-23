@@ -277,6 +277,46 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.status(500).json({ error: "Failed to authenticate user" });
     }
 });
+const checkUsername = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { username } = req.body;
+    if (!username) {
+        return res.status(400).json({ error: "Username is required" });
+    }
+    try {
+        const user = yield user_model_1.default.findOne({ name: username });
+        if (user) {
+            return res.status(200).json({ available: false });
+        }
+        return res.status(200).json({ available: true });
+    }
+    catch (err) {
+        console.error("Error checking username availability:", err);
+        return res.status(500).json({ error: "Server error" });
+    }
+});
+const validatePassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { password } = req.body;
+    const token = getTokenFromRequest(req);
+    if (!token) {
+        return (0, exports.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, exports.sendError)(res, "User not found", 404);
+        }
+        const isMatch = yield bcrypt_1.default.compare(password, user.password);
+        if (isMatch) {
+            return res.status(200).json({ valid: true });
+        }
+        res.status(200).json({ valid: false });
+    }
+    catch (error) {
+        console.error("Validate password error:", error);
+        (0, exports.sendError)(res, "Failed to validate password", 500);
+    }
+});
 exports.default = {
     login,
     register,
@@ -290,5 +330,7 @@ exports.default = {
     updateNickname,
     updatePassword,
     googleCallback,
+    checkUsername,
+    validatePassword,
 };
 //# sourceMappingURL=auth_controller.js.map
