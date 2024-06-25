@@ -220,7 +220,8 @@ router.get("/user", auth_controller_1.default.getProfile);
  *       500:
  *         description: Server error
  */
-router.put("/user", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfile);
+router.put("/profile-pic", auth_controller_1.default.upload.single("profilePic"), auth_controller_1.default.updateProfilePic);
+router.put("/user", auth_controller_1.default.updateProfile);
 /**
  * @swagger
  * /auth/nickname:
@@ -311,6 +312,36 @@ router.put("/password", auth_controller_1.default.updatePassword);
 router.post("/check-username", auth_controller_1.default.checkUsername);
 /**
  * @swagger
+ * /auth/check-email:
+ *   post:
+ *     summary: Check if an email is available
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email availability status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *                   description: Availability status of the email
+ *       500:
+ *         description: Server error
+ */
+router.post("/check-email", auth_controller_1.default.checkEmail);
+/**
+ * @swagger
  * /auth/validate-password:
  *   post:
  *     summary: Validate the current password
@@ -397,6 +428,5 @@ router.get("/google/callback", passport_1.default.authenticate("google", { failu
  *         description: Failed to authenticate user
  */
 router.post("/google/callback", auth_controller_1.default.googleCallback);
-router.post("/check-email", auth_controller_1.default.checkEmail);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map

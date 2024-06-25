@@ -12,7 +12,7 @@ const postSchema = new mongoose_1.default.Schema({
     sender: {
         type: mongoose_1.default.Schema.Types.ObjectId,
         ref: "User",
-        required: true, // וודא שהשולח הוא חובה
+        required: true,
     },
     image: {
         type: String,

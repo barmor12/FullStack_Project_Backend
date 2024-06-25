@@ -8,7 +8,7 @@ const postSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true, // וודא שהשולח הוא חובה
+    required: true,
   },
   image: {
     type: String,

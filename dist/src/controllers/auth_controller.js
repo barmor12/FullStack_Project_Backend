@@ -206,6 +206,25 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         user.nickname = name || user.nickname;
         user.email = email || user.email;
+        const updatedUser = yield user.save();
+        res.status(200).send(updatedUser);
+    }
+    catch (err) {
+        console.error("Update profile error:", err);
+        (0, exports.sendError)(res, "Failed to update profile", 500);
+    }
+});
+const updateProfilePic = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const token = getTokenFromRequest(req);
+    if (!token) {
+        return (0, exports.sendError)(res, "Token required", 401);
+    }
+    try {
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = yield user_model_1.default.findById(decoded._id);
+        if (!user) {
+            return (0, exports.sendError)(res, "User not found", 404);
+        }
         if (req.file) {
             user.profilePic = `/uploads/${req.file.filename}`;
         }
@@ -213,8 +232,8 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         res.status(200).send(updatedUser);
     }
     catch (err) {
-        console.error("Update profile error:", err);
-        (0, exports.sendError)(res, "Failed to update profile", 500);
+        console.error("Update profile picture error:", err);
+        (0, exports.sendError)(res, "Failed to update profile picture", 500);
     }
 });
 const updateNickname = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -327,7 +346,7 @@ const validatePassword = (req, res) => __awaiter(void 0, void 0, void 0, functio
         if (isMatch) {
             return res.status(200).json({ valid: true });
         }
-        res.status(200).json({ valid: false });
+        return res.status(200).json({ valid: false });
     }
     catch (error) {
         console.error("Validate password error:", error);
@@ -344,6 +363,7 @@ exports.default = {
     getProfile,
     upload,
     updateProfile,
+    updateProfilePic,
     updateNickname,
     updatePassword,
     googleCallback,

@@ -229,11 +229,11 @@ router.get("/user", authController.getProfile);
  *         description: Server error
  */
 router.put(
-  "/user",
+  "/profile-pic",
   authController.upload.single("profilePic"),
-  authController.updateProfile
+  authController.updateProfilePic
 );
-
+router.put("/user", authController.updateProfile);
 /**
  * @swagger
  * /auth/nickname:

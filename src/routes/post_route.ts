@@ -1,15 +1,15 @@
+import express from "express";
+const router = express.Router();
+import post from "../controllers/post_controller";
+import authmiddleware from "../common/auth_middleware";
+import authController from "../controllers/auth_controller";
+
 /**
  * @swagger
  * tags:
  *  name: Post
  *  description: The Post API
  */
-
-import express from "express";
-const router = express.Router();
-import post from "../controllers/post_controller";
-import authmiddleware from "../common/auth_middleware";
-import authController from "../controllers/auth_controller";
 
 /**
  * @swagger
@@ -39,32 +39,27 @@ import authController from "../controllers/auth_controller";
 /**
  * @swagger
  * /post:
- *   post:
- *     summary: Create a new post
+ *   get:
+ *     summary: Get all posts
  *     tags: [Post]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Post'
  *     responses:
- *       201:
- *         description: Post created successfully
+ *       200:
+ *         description: Posts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Post'
- *       400:
- *         description: Invalid input
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
  *       401:
  *         description: Unauthorized
+ *       400:
+ *         description: Failed to get posts
  *       500:
- *         description: Server error
+ *         description: Internal server error
  */
-
 router.get("/", authmiddleware, post.getAllPosts);
 
 /**
@@ -117,6 +112,7 @@ router.get("/user", authmiddleware, post.getUserPosts);
  *                 $ref: '#/components/schemas/Post'
  */
 router.get("/:id", authmiddleware, post.getPostById);
+
 /**
  * @swagger
  * /post:
@@ -129,26 +125,18 @@ router.get("/:id", authmiddleware, post.getPostById);
  *       required: true
  *       description: Data for the new post
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
  *               - message
- *               - sender
  *             properties:
  *               message:
  *                 type: string
  *                 description: The content of the post.
- *               sender:
- *                 type: string
- *                 description: The sender's user ID.
  *               image:
  *                 type: string
- *                 description: The path of the image.
- *             example:
- *               message: "Here is a new post about API documentation."
- *               sender: "123456"
- *               image: "/uploads/example.jpg"
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Post created successfully
@@ -170,6 +158,7 @@ router.post(
   authmiddleware,
   post.addNewPost
 );
+
 /**
  * @swagger
  * /post/{id}:
@@ -199,6 +188,7 @@ router.post(
  */
 
 router.delete("/:id", authmiddleware, post.deletePost);
+
 /**
  * @swagger
  * /post/{id}:

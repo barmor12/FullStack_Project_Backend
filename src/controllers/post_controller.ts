@@ -11,10 +11,10 @@ const getAllPosts = async (req: Request, res: Response) => {
     if (typeof req.query.sender === "string") {
       posts = await Post.find({ sender: req.query.sender }).populate(
         "sender",
-        "name email profilePic"
+        "nickname email profilePic"
       );
     } else {
-      posts = await Post.find().populate("sender", "name email profilePic");
+      posts = await Post.find().populate("sender", "nickname email profilePic");
     }
     res.status(200).send(posts);
   } catch (err) {
@@ -41,7 +41,7 @@ const getUserPosts = async (req: Request, res: Response) => {
 
     const posts = await Post.find({ sender: user._id }).populate(
       "sender",
-      "name email profilePic"
+      "nickname email profilePic"
     );
     res.status(200).send(posts);
   } catch (err) {
@@ -70,13 +70,12 @@ const addNewPost = async (req: Request, res: Response) => {
     let image = "";
 
     if (req.file) {
-      image = `/uploads/${req.file.filename}`; // שמירת הנתיב היחסי
+      image = `/uploads/${req.file.filename}`;
     }
 
     const post = new Post({
       message,
       sender: user._id,
-      senderName: user.nickname || "Unknown",
       image,
     });
 
@@ -92,7 +91,7 @@ const getPostById = async (req: Request, res: Response) => {
   try {
     const post = await Post.findById(req.params.id).populate(
       "sender",
-      "name email profilePic"
+      "nickname email profilePic"
     );
     if (!post) {
       return res.status(404).json({ message: "Post not found" });

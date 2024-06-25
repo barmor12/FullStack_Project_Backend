@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import express, { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
@@ -256,6 +256,30 @@ const updateProfile = async (req: Request, res: Response) => {
     user.nickname = name || user.nickname;
     user.email = email || user.email;
 
+    const updatedUser = await user.save();
+    res.status(200).send(updatedUser);
+  } catch (err) {
+    console.error("Update profile error:", err);
+    sendError(res, "Failed to update profile", 500);
+  }
+};
+
+const updateProfilePic = async (req: Request, res: Response) => {
+  const token = getTokenFromRequest(req);
+  if (!token) {
+    return sendError(res, "Token required", 401);
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.ACCESS_TOKEN_SECRET!
+    ) as TokenPayload;
+    const user = await User.findById(decoded._id);
+    if (!user) {
+      return sendError(res, "User not found", 404);
+    }
+
     if (req.file) {
       user.profilePic = `/uploads/${req.file.filename}`;
     }
@@ -263,8 +287,8 @@ const updateProfile = async (req: Request, res: Response) => {
     const updatedUser = await user.save();
     res.status(200).send(updatedUser);
   } catch (err) {
-    console.error("Update profile error:", err);
-    sendError(res, "Failed to update profile", 500);
+    console.error("Update profile picture error:", err);
+    sendError(res, "Failed to update profile picture", 500);
   }
 };
 
@@ -334,6 +358,7 @@ const updatePassword = async (req: Request, res: Response) => {
     sendError(res, "Failed to update password", 500);
   }
 };
+
 const googleCallback = async (req: Request, res: Response) => {
   const { token } = req.body;
   try {
@@ -401,7 +426,7 @@ const validatePassword = async (req: Request, res: Response) => {
     if (isMatch) {
       return res.status(200).json({ valid: true });
     }
-    res.status(200).json({ valid: false });
+    return res.status(200).json({ valid: false });
   } catch (error) {
     console.error("Validate password error:", error);
     sendError(res, "Failed to validate password", 500);
@@ -418,6 +443,7 @@ export default {
   getProfile,
   upload,
   updateProfile,
+  updateProfilePic,
   updateNickname,
   updatePassword,
   googleCallback,

@@ -20,10 +20,10 @@ const getAllPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     try {
         let posts;
         if (typeof req.query.sender === "string") {
-            posts = yield post_model_1.default.find({ sender: req.query.sender }).populate("sender", "name email profilePic");
+            posts = yield post_model_1.default.find({ sender: req.query.sender }).populate("sender", "nickname email profilePic");
         }
         else {
-            posts = yield post_model_1.default.find().populate("sender", "name email profilePic");
+            posts = yield post_model_1.default.find().populate("sender", "nickname email profilePic");
         }
         res.status(200).send(posts);
     }
@@ -43,7 +43,7 @@ const getUserPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         if (!user) {
             return (0, auth_controller_1.sendError)(res, "User not found", 404);
         }
-        const posts = yield post_model_1.default.find({ sender: user._id }).populate("sender", "name email profilePic");
+        const posts = yield post_model_1.default.find({ sender: user._id }).populate("sender", "nickname email profilePic");
         res.status(200).send(posts);
     }
     catch (err) {
@@ -65,12 +65,11 @@ const addNewPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const { message } = req.body;
         let image = "";
         if (req.file) {
-            image = `/uploads/${req.file.filename}`; // שמירת הנתיב היחסי
+            image = `/uploads/${req.file.filename}`;
         }
         const post = new post_model_1.default({
             message,
             sender: user._id,
-            senderName: user.nickname || "Unknown",
             image,
         });
         const newPost = yield post.save();
@@ -83,7 +82,7 @@ const addNewPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 });
 const getPostById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const post = yield post_model_1.default.findById(req.params.id).populate("sender", "name email profilePic");
+        const post = yield post_model_1.default.findById(req.params.id).populate("sender", "nickname email profilePic");
         if (!post) {
             return res.status(404).json({ message: "Post not found" });
         }

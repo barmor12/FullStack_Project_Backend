@@ -1,10 +1,4 @@
 "use strict";
-/**
- * @swagger
- * tags:
- *  name: Post
- *  description: The Post API
- */
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -13,6 +7,12 @@ const router = express_1.default.Router();
 const post_controller_1 = __importDefault(require("../controllers/post_controller"));
 const auth_middleware_1 = __importDefault(require("../common/auth_middleware"));
 const auth_controller_1 = __importDefault(require("../controllers/auth_controller"));
+/**
+ * @swagger
+ * tags:
+ *  name: Post
+ *  description: The Post API
+ */
 /**
  * @swagger
  * components:
@@ -40,30 +40,26 @@ const auth_controller_1 = __importDefault(require("../controllers/auth_controlle
 /**
  * @swagger
  * /post:
- *   post:
- *     summary: Create a new post
+ *   get:
+ *     summary: Get all posts
  *     tags: [Post]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Post'
  *     responses:
- *       201:
- *         description: Post created successfully
+ *       200:
+ *         description: Posts retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Post'
- *       400:
- *         description: Invalid input
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Post'
  *       401:
  *         description: Unauthorized
+ *       400:
+ *         description: Failed to get posts
  *       500:
- *         description: Server error
+ *         description: Internal server error
  */
 router.get("/", auth_middleware_1.default, post_controller_1.default.getAllPosts);
 /**
@@ -127,26 +123,18 @@ router.get("/:id", auth_middleware_1.default, post_controller_1.default.getPostB
  *       required: true
  *       description: Data for the new post
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
  *               - message
- *               - sender
  *             properties:
  *               message:
  *                 type: string
  *                 description: The content of the post.
- *               sender:
- *                 type: string
- *                 description: The sender's user ID.
  *               image:
  *                 type: string
- *                 description: The path of the image.
- *             example:
- *               message: "Here is a new post about API documentation."
- *               sender: "123456"
- *               image: "/uploads/example.jpg"
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Post created successfully
