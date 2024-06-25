@@ -17,8 +17,8 @@ const server_1 = __importDefault(require("../server"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const user_model_1 = __importDefault(require("../models/user_model"));
-const userEmail = "user5@gmail.com";
-const userPassword = "12345";
+const userEmail = `user${Date.now()}@gmail.com`;
+const userPassword = "B12345678";
 let accessToken = "";
 let refreshToken = "";
 let server;
@@ -36,7 +36,7 @@ describe("Auth Tests", () => {
                 .post("/auth/register")
                 .field("email", userEmail)
                 .field("password", userPassword)
-                .field("name", "User Name");
+                .field("nickname", "User Name");
             expect(response.statusCode).toEqual(201);
         }), 10000);
         test("Register with empty email", () => __awaiter(void 0, void 0, void 0, function* () {
@@ -44,7 +44,7 @@ describe("Auth Tests", () => {
                 .post("/auth/register")
                 .field("email", "")
                 .field("password", userPassword)
-                .field("name", "User Name");
+                .field("nickname", "User Name");
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with empty password", () => __awaiter(void 0, void 0, void 0, function* () {
@@ -52,7 +52,7 @@ describe("Auth Tests", () => {
                 .post("/auth/register")
                 .field("email", userEmail)
                 .field("password", "")
-                .field("name", "User Name");
+                .field("nickname", "User Name");
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with empty email and password", () => __awaiter(void 0, void 0, void 0, function* () {
@@ -60,7 +60,7 @@ describe("Auth Tests", () => {
                 .post("/auth/register")
                 .field("email", "")
                 .field("password", "")
-                .field("name", "User Name");
+                .field("nickname", "User Name");
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
         test("Register with existing email", () => __awaiter(void 0, void 0, void 0, function* () {
@@ -68,7 +68,7 @@ describe("Auth Tests", () => {
                 .post("/auth/register")
                 .field("email", userEmail)
                 .field("password", userPassword)
-                .field("name", "User Name");
+                .field("nickname", "User Name");
             expect(response.statusCode).not.toEqual(201);
         }), 10000);
     });

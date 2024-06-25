@@ -20,7 +20,7 @@ const user_model_1 = __importDefault(require("../models/user_model"));
 const multer_1 = __importDefault(require("multer"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new google_auth_library_1.OAuth2Client(process.env.GOOGLE_CLIENT_ID_IOS);
 function getTokenFromRequest(req) {
     const authHeader = req.headers["authorization"];
     if (!authHeader)
@@ -293,16 +293,21 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const ticket = yield client.verifyIdToken({
             idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID_WEB,
+            audience: process.env.GOOGLE_CLIENT_ID_IOS,
         });
         const payload = ticket.getPayload();
-        let user = yield user_model_1.default.findOne({ googleId: payload === null || payload === void 0 ? void 0 : payload.sub });
+        if (!payload) {
+            return res
+                .status(400)
+                .json({ error: "Failed to get payload from token" });
+        }
+        let user = yield user_model_1.default.findOne({ googleId: payload.sub });
         if (!user) {
             user = new user_model_1.default({
-                googleId: payload === null || payload === void 0 ? void 0 : payload.sub,
-                email: payload === null || payload === void 0 ? void 0 : payload.email,
-                nickname: payload === null || payload === void 0 ? void 0 : payload.name,
-                profilePic: payload === null || payload === void 0 ? void 0 : payload.picture,
+                googleId: payload.sub,
+                email: payload.email,
+                nickname: payload.name,
+                profilePic: payload.picture,
             });
             yield user.save();
         }
@@ -310,6 +315,7 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
         res.json(tokens);
     }
     catch (error) {
+        console.error("Error verifying token:", error);
         res.status(500).json({ error: "Failed to authenticate user" });
     }
 });

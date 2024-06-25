@@ -11,7 +11,7 @@ interface TokenPayload extends JwtPayload {
   _id: string;
 }
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID_IOS);
 
 export function getTokenFromRequest(req: Request): string | null {
   const authHeader = req.headers["authorization"];
@@ -364,18 +364,24 @@ const googleCallback = async (req: Request, res: Response) => {
   try {
     const ticket = await client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID_WEB,
+      audience: process.env.GOOGLE_CLIENT_ID_IOS,
     });
 
     const payload = ticket.getPayload();
-    let user = await User.findOne({ googleId: payload?.sub });
+    if (!payload) {
+      return res
+        .status(400)
+        .json({ error: "Failed to get payload from token" });
+    }
+
+    let user = await User.findOne({ googleId: payload.sub });
 
     if (!user) {
       user = new User({
-        googleId: payload?.sub,
-        email: payload?.email,
-        nickname: payload?.name,
-        profilePic: payload?.picture,
+        googleId: payload.sub,
+        email: payload.email,
+        nickname: payload.name,
+        profilePic: payload.picture,
       });
       await user.save();
     }
@@ -383,6 +389,7 @@ const googleCallback = async (req: Request, res: Response) => {
     const tokens = await generateTokens(user._id.toString());
     res.json(tokens);
   } catch (error) {
+    console.error("Error verifying token:", error);
     res.status(500).json({ error: "Failed to authenticate user" });
   }
 };
@@ -398,6 +405,7 @@ const checkUsername = async (req: Request, res: Response) => {
     if (user) {
       return res.status(200).json({ available: false });
     }
+
     return res.status(200).json({ available: true });
   } catch (err) {
     console.error("Error checking username availability:", err);
