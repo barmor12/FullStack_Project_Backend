@@ -79,7 +79,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password, nickname } = req.body;
+    const { email, password, name } = req.body;
     let profilePic = "";
     if (req.file) {
         profilePic = `/uploads/${req.file.filename}`;
@@ -97,7 +97,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             email,
             password: hashedPassword,
             profilePic,
-            nickname,
+            name,
         });
         const newUser = yield user.save();
         const tokens = yield generateTokens(newUser._id.toString());
@@ -179,7 +179,7 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!user) {
             return (0, exports.sendError)(res, "User not found", 404);
         }
-        const { nickname, email, oldPassword, newPassword } = req.body;
+        const { name, email, oldPassword, newPassword } = req.body;
         if (oldPassword && newPassword) {
             const isMatch = yield bcrypt_1.default.compare(oldPassword, user.password);
             if (!isMatch) {
@@ -187,7 +187,7 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             user.password = yield bcrypt_1.default.hash(newPassword, 10);
         }
-        user.nickname = nickname || user.nickname;
+        user.nickname = name || user.nickname;
         user.email = email || user.email;
         if (req.file) {
             user.profilePic = `/uploads/${req.file.filename}`;

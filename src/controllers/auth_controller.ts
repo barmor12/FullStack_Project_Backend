@@ -93,7 +93,7 @@ const login = async (req: Request, res: Response) => {
 };
 
 const register = async (req: Request, res: Response) => {
-  const { email, password, nickname } = req.body;
+  const { email, password, name } = req.body;
   let profilePic = "";
 
   if (req.file) {
@@ -115,7 +115,7 @@ const register = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       profilePic,
-      nickname,
+      name,
     });
 
     const newUser = await user.save();
@@ -226,7 +226,7 @@ const updateProfile = async (req: Request, res: Response) => {
       return sendError(res, "User not found", 404);
     }
 
-    const { nickname, email, oldPassword, newPassword } = req.body;
+    const { name, email, oldPassword, newPassword } = req.body;
     if (oldPassword && newPassword) {
       const isMatch = await bcrypt.compare(oldPassword, user.password);
       if (!isMatch) {
@@ -235,7 +235,7 @@ const updateProfile = async (req: Request, res: Response) => {
       user.password = await bcrypt.hash(newPassword, 10);
     }
 
-    user.nickname = nickname || user.nickname;
+    user.nickname = name || user.nickname;
     user.email = email || user.email;
 
     if (req.file) {
