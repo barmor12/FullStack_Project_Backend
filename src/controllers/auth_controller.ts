@@ -394,7 +394,7 @@ const checkUsername = async (req: Request, res: Response) => {
   }
 
   try {
-    const user = await User.findOne({ name: username });
+    const user = await User.findOne({ nickname: username });
     if (user) {
       return res.status(200).json({ available: false });
     }

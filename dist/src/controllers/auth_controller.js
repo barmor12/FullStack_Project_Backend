@@ -319,7 +319,7 @@ const checkUsername = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         return res.status(400).json({ error: "Username is required" });
     }
     try {
-        const user = yield user_model_1.default.findOne({ name: username });
+        const user = yield user_model_1.default.findOne({ nickname: username });
         if (user) {
             return res.status(200).json({ available: false });
         }
