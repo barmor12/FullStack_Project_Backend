@@ -327,6 +327,37 @@ router.post("/check-username", authController.checkUsername);
 
 /**
  * @swagger
+ * /auth/check-email:
+ *   post:
+ *     summary: Check if an email is available
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email availability status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 available:
+ *                   type: boolean
+ *                   description: Availability status of the email
+ *       500:
+ *         description: Server error
+ */
+router.post("/check-email", authController.checkEmail);
+
+/**
+ * @swagger
  * /auth/validate-password:
  *   post:
  *     summary: Validate the current password

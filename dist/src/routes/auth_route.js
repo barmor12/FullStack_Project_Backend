@@ -397,5 +397,6 @@ router.get("/google/callback", passport_1.default.authenticate("google", { failu
  *         description: Failed to authenticate user
  */
 router.post("/google/callback", auth_controller_1.default.googleCallback);
+router.post("/check-email", auth_controller_1.default.checkEmail);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map

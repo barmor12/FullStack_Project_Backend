@@ -93,7 +93,7 @@ const login = async (req: Request, res: Response) => {
 };
 
 const register = async (req: Request, res: Response) => {
-  const { email, password, name } = req.body;
+  const { email, password, nickname } = req.body;
   let profilePic = "";
 
   if (req.file) {
@@ -115,7 +115,7 @@ const register = async (req: Request, res: Response) => {
       email,
       password: hashedPassword,
       profilePic,
-      name,
+      nickname,
     });
 
     const newUser = await user.save();
@@ -124,6 +124,24 @@ const register = async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Registration error:", err);
     sendError(res, "Failed to register", 500);
+  }
+};
+
+const checkEmail = async (req: Request, res: Response) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: "Email is required" });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (user) {
+      return res.status(200).json({ available: false });
+    }
+    return res.status(200).json({ available: true });
+  } catch (err) {
+    console.error("Error checking email availability:", err);
+    return res.status(500).json({ error: "Server error" });
   }
 };
 
@@ -404,5 +422,6 @@ export default {
   updatePassword,
   googleCallback,
   checkUsername,
+  checkEmail,
   validatePassword,
 };

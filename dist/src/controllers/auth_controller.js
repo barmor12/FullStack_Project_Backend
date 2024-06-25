@@ -79,7 +79,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, password, name } = req.body;
+    const { email, password, nickname } = req.body;
     let profilePic = "";
     if (req.file) {
         profilePic = `/uploads/${req.file.filename}`;
@@ -97,7 +97,7 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             email,
             password: hashedPassword,
             profilePic,
-            name,
+            nickname,
         });
         const newUser = yield user.save();
         const tokens = yield generateTokens(newUser._id.toString());
@@ -106,6 +106,23 @@ const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     catch (err) {
         console.error("Registration error:", err);
         (0, exports.sendError)(res, "Failed to register", 500);
+    }
+});
+const checkEmail = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+    }
+    try {
+        const user = yield user_model_1.default.findOne({ email });
+        if (user) {
+            return res.status(200).json({ available: false });
+        }
+        return res.status(200).json({ available: true });
+    }
+    catch (err) {
+        console.error("Error checking email availability:", err);
+        return res.status(500).json({ error: "Server error" });
     }
 });
 const logout = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -331,6 +348,7 @@ exports.default = {
     updatePassword,
     googleCallback,
     checkUsername,
+    checkEmail,
     validatePassword,
 };
 //# sourceMappingURL=auth_controller.js.map
