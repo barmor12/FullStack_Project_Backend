@@ -474,15 +474,16 @@ const validatePassword = async (req: Request, res: Response) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    return res.status(200).json({ valid: isMatch });
+    if (isMatch) {
+      return res.status(200).json({ valid: true });
+    }
+    return res.status(200).json({ valid: false });
   } catch (error) {
     console.error("Validate password error:", error);
-    if (error instanceof jwt.JsonWebTokenError) {
-      return sendError(res, "Invalid token", 403);
-    }
     sendError(res, "Failed to validate password", 500);
   }
 };
+
 export default {
   login,
   register,
