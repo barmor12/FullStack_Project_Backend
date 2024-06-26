@@ -14,8 +14,8 @@ let newPostId = "";
 
 beforeAll(async () => {
   server = app.listen(3000);
-  await mongoose.model("User").deleteMany({});
-  await mongoose.model("Post").deleteMany({});
+  // await mongoose.model("User").deleteMany({});
+  // await mongoose.model("Post").deleteMany({});
   const newUser = await User.create({
     email: "user2@gmail.com",
     password: "12345",

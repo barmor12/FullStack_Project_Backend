@@ -392,13 +392,13 @@ const validatePassword = (req, res) => __awaiter(void 0, void 0, void 0, functio
             return (0, exports.sendError)(res, "User not found", 404);
         }
         const isMatch = yield bcrypt_1.default.compare(password, user.password);
-        if (isMatch) {
-            return res.status(200).json({ valid: true });
-        }
-        return res.status(200).json({ valid: false });
+        return res.status(200).json({ valid: isMatch });
     }
     catch (error) {
         console.error("Validate password error:", error);
+        if (error instanceof jsonwebtoken_1.default.JsonWebTokenError) {
+            return (0, exports.sendError)(res, "Invalid token", 403);
+        }
         (0, exports.sendError)(res, "Failed to validate password", 500);
     }
 });
