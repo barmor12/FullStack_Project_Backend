@@ -22,7 +22,6 @@ const getAllPosts = async (req: Request, res: Response) => {
     res.status(400).send({ error: "Failed to get posts" });
   }
 };
-
 const getUserPosts = async (req: Request, res: Response) => {
   const token = getTokenFromRequest(req);
   if (!token) {
@@ -33,7 +32,12 @@ const getUserPosts = async (req: Request, res: Response) => {
     const decoded = jwt.verify(
       token,
       process.env.ACCESS_TOKEN_SECRET!
-    ) as TokenPayload;
+    ) as TokenPayload | null;
+
+    if (!decoded || !decoded._id) {
+      return sendError(res, "Invalid token", 401);
+    }
+
     const user = await User.findById(decoded._id);
     if (!user) {
       return sendError(res, "User not found", 404);
@@ -49,7 +53,6 @@ const getUserPosts = async (req: Request, res: Response) => {
     res.status(400).send({ error: "Failed to get user posts" });
   }
 };
-
 const addNewPost = async (req: Request, res: Response) => {
   const token = getTokenFromRequest(req);
   if (!token) {

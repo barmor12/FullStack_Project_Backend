@@ -428,5 +428,39 @@ router.get("/google/callback", passport_1.default.authenticate("google", { failu
  *         description: Failed to authenticate user
  */
 router.post("/google/callback", auth_controller_1.default.googleCallback);
+/**
+ * @swagger
+ * /auth/google/check-user:
+ *   post:
+ *     summary: Check if a Google user exists
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: The ID token from Google
+ *     responses:
+ *       200:
+ *         description: User existence status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 exists:
+ *                   type: boolean
+ *                   description: Whether the user exists
+ *                 tokens:
+ *                   type: object
+ *                   $ref: '#/components/schemas/Tokens'
+ *       500:
+ *         description: Failed to check user
+ */
+router.post("/google/check-user", auth_controller_1.default.checkGoogleUser);
 exports.default = router;
 //# sourceMappingURL=auth_route.js.map

@@ -204,6 +204,12 @@ const updateProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             }
             user.password = yield bcrypt_1.default.hash(newPassword, 10);
         }
+        if (!user.googleId && req.file) {
+            user.profilePic = `/uploads/${req.file.filename}`;
+        }
+        else if (user.googleId && req.body.profilePic) {
+            user.profilePic = req.body.profilePic;
+        }
         user.nickname = name || user.nickname;
         user.email = email || user.email;
         const updatedUser = yield user.save();
@@ -227,6 +233,9 @@ const updateProfilePic = (req, res) => __awaiter(void 0, void 0, void 0, functio
         }
         if (req.file) {
             user.profilePic = `/uploads/${req.file.filename}`;
+        }
+        else if (req.body.profilePic) {
+            user.profilePic = req.body.profilePic;
         }
         const updatedUser = yield user.save();
         res.status(200).send(updatedUser);
@@ -289,7 +298,7 @@ const updatePassword = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { token } = req.body;
+    const { token, password } = req.body;
     try {
         const ticket = yield client.verifyIdToken({
             idToken: token,
@@ -303,12 +312,19 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
         }
         let user = yield user_model_1.default.findOne({ googleId: payload.sub });
         if (!user) {
+            const hashedPassword = yield bcrypt_1.default.hash(password, 10);
             user = new user_model_1.default({
                 googleId: payload.sub,
                 email: payload.email,
                 nickname: payload.name,
                 profilePic: payload.picture,
+                password: hashedPassword,
             });
+            yield user.save();
+        }
+        else if (!user.password) {
+            const hashedPassword = yield bcrypt_1.default.hash(password, 10); // Hash the password before saving
+            user.password = hashedPassword; // Update the password
             yield user.save();
         }
         const tokens = yield generateTokens(user._id.toString());
@@ -317,6 +333,33 @@ const googleCallback = (req, res) => __awaiter(void 0, void 0, void 0, function*
     catch (error) {
         console.error("Error verifying token:", error);
         res.status(500).json({ error: "Failed to authenticate user" });
+    }
+});
+const checkGoogleUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { token } = req.body;
+    try {
+        const ticket = yield client.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID_IOS,
+        });
+        const payload = ticket.getPayload();
+        if (!payload) {
+            return res
+                .status(400)
+                .json({ error: "Failed to get payload from token" });
+        }
+        let user = yield user_model_1.default.findOne({ googleId: payload.sub });
+        if (user) {
+            const tokens = yield generateTokens(user._id.toString());
+            return res.json({ exists: true, tokens });
+        }
+        else {
+            return res.json({ exists: false });
+        }
+    }
+    catch (error) {
+        console.error("Error checking Google user:", error);
+        res.status(500).json({ error: "Failed to check user" });
     }
 });
 const checkUsername = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -373,6 +416,7 @@ exports.default = {
     updateNickname,
     updatePassword,
     googleCallback,
+    checkGoogleUser,
     checkUsername,
     checkEmail,
     validatePassword,

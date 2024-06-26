@@ -39,6 +39,9 @@ const getUserPosts = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        if (!decoded || !decoded._id) {
+            return (0, auth_controller_1.sendError)(res, "Invalid token", 401);
+        }
         const user = yield user_model_1.default.findById(decoded._id);
         if (!user) {
             return (0, auth_controller_1.sendError)(res, "User not found", 404);

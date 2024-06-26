@@ -245,12 +245,19 @@ const updateProfile = async (req: Request, res: Response) => {
     }
 
     const { name, email, oldPassword, newPassword } = req.body;
+
     if (oldPassword && newPassword) {
       const isMatch = await bcrypt.compare(oldPassword, user.password);
       if (!isMatch) {
         return sendError(res, "Old password is incorrect", 400);
       }
       user.password = await bcrypt.hash(newPassword, 10);
+    }
+
+    if (!user.googleId && req.file) {
+      user.profilePic = `/uploads/${req.file.filename}`;
+    } else if (user.googleId && req.body.profilePic) {
+      user.profilePic = req.body.profilePic;
     }
 
     user.nickname = name || user.nickname;
@@ -263,8 +270,7 @@ const updateProfile = async (req: Request, res: Response) => {
     sendError(res, "Failed to update profile", 500);
   }
 };
-
-const updateProfilePic = async (req: Request, res: Response) => {
+const updateProfilePic = async (req, res) => {
   const token = getTokenFromRequest(req);
   if (!token) {
     return sendError(res, "Token required", 401);
@@ -273,7 +279,7 @@ const updateProfilePic = async (req: Request, res: Response) => {
   try {
     const decoded = jwt.verify(
       token,
-      process.env.ACCESS_TOKEN_SECRET!
+      process.env.ACCESS_TOKEN_SECRET
     ) as TokenPayload;
     const user = await User.findById(decoded._id);
     if (!user) {
@@ -282,6 +288,8 @@ const updateProfilePic = async (req: Request, res: Response) => {
 
     if (req.file) {
       user.profilePic = `/uploads/${req.file.filename}`;
+    } else if (req.body.profilePic) {
+      user.profilePic = req.body.profilePic;
     }
 
     const updatedUser = await user.save();
@@ -359,8 +367,8 @@ const updatePassword = async (req: Request, res: Response) => {
   }
 };
 
-const googleCallback = async (req: Request, res: Response) => {
-  const { token } = req.body;
+const googleCallback = async (req, res) => {
+  const { token, password } = req.body;
   try {
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -377,12 +385,18 @@ const googleCallback = async (req: Request, res: Response) => {
     let user = await User.findOne({ googleId: payload.sub });
 
     if (!user) {
+      const hashedPassword = await bcrypt.hash(password, 10);
       user = new User({
         googleId: payload.sub,
         email: payload.email,
         nickname: payload.name,
         profilePic: payload.picture,
+        password: hashedPassword,
       });
+      await user.save();
+    } else if (!user.password) {
+      const hashedPassword = await bcrypt.hash(password, 10); // Hash the password before saving
+      user.password = hashedPassword; // Update the password
       await user.save();
     }
 
@@ -391,6 +405,35 @@ const googleCallback = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error verifying token:", error);
     res.status(500).json({ error: "Failed to authenticate user" });
+  }
+};
+
+const checkGoogleUser = async (req: Request, res: Response) => {
+  const { token } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID_IOS,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+      return res
+        .status(400)
+        .json({ error: "Failed to get payload from token" });
+    }
+
+    let user = await User.findOne({ googleId: payload.sub });
+
+    if (user) {
+      const tokens = await generateTokens(user._id.toString());
+      return res.json({ exists: true, tokens });
+    } else {
+      return res.json({ exists: false });
+    }
+  } catch (error) {
+    console.error("Error checking Google user:", error);
+    res.status(500).json({ error: "Failed to check user" });
   }
 };
 
@@ -455,6 +498,7 @@ export default {
   updateNickname,
   updatePassword,
   googleCallback,
+  checkGoogleUser,
   checkUsername,
   checkEmail,
   validatePassword,
